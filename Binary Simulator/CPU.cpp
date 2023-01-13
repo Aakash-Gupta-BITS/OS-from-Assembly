@@ -19,18 +19,6 @@ enum class InstructionType : uint8_t
 	ERROR
 };
 
-enum class Destination : uint8_t
-{
-	NA = 0,
-	M = 1,
-	D = 2,
-	MD = 3,
-	A = 4,
-	AM = 5,
-	AD = 6,
-	AMD = 7
-};
-
 class Hardware
 {
 private:
