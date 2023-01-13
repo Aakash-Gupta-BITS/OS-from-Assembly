@@ -15,6 +15,9 @@ There are many projects. One which simulates the binary file is completed.
    ./simulator.out <instruction_file_location> <memory_file_location> <memory_dump_location>
    ```
 
+### I/O Redirections
+`stdout` and `stdin` have no use. Debug output is automatically redirected to `stderr`.
+
 ### File Format
 Both memory and instruction files have one instruction per line, with each instruction in binary format. For example, we can have the following instruction file:
 ```
