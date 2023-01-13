@@ -199,7 +199,10 @@ private:
 
 		// get destination
 		if (d & 0b001)
+		{
 			data[A] = alu_out;
+			cerr << "data[A] <- " << bitset<16>(data[A]) << "(" << data[A] << "), ";
+		}
 		if (d & 0b010)
 			D = alu_out;
 		if (d & 0b100)
@@ -215,12 +218,15 @@ public:
 	void reset()
 	{
 		PC = D = A = 0;
+		cerr << "reset" << endl;
 	}
 
 	void execute_next()
 	{
 		// fetch the instruction
 		auto ins = instructions[PC];
+
+		cerr << bitset<16>(ins) << " - ";
 
 		// Decode the instruction
 		switch (get_instruction_type(ins))
@@ -239,6 +245,9 @@ public:
 
 		// Update PC
 		PC = PC + 1;
+		cerr << "A <- " << bitset<16>(A) << "(" << A << "), ";
+		cerr << "D <- " << bitset<16>(D) << "(" << D << "), ";
+		cerr << "PC <- " << bitset<16>(PC) << "(" << PC << ")" << endl;
 	}
 };
 
