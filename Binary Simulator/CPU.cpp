@@ -3,6 +3,8 @@
 #include <iostream>
 #include <cassert>
 #include <bitset>
+#include <fstream>
+
 using namespace std;
 
 const uint16_t INSTRUCTION_COUNT = 1 << 15;	// number of instructions
@@ -37,7 +39,7 @@ private:
 	// Registers
 	int16_t D;
 	int16_t A;
-	int16_t PC;
+	uint16_t PC;
 
 	InstructionType get_instruction_type(const uint16_t& ins) const
 	{
@@ -210,19 +212,29 @@ private:
 	}
 
 public:
-	Hardware() 
+	Hardware(const uint16_t instructions[INSTRUCTION_COUNT], const int16_t data[DATA_COUNT])
 	{
+		for (int i = 0; i < INSTRUCTION_COUNT; ++i)
+			this->instructions[i] = instructions[i];
 
+		for (int i = 0; i < DATA_COUNT; ++i)
+			this->data[i] = data[i];
 	}
 
 	void reset()
 	{
-		PC = D = A = 0;
+		PC = 0;
 		cerr << "reset" << endl;
 	}
 
 	void execute_next()
 	{
+		if (PC == -1)
+		{
+			cerr << "end" << endl;
+			return;
+		}
+
 		// fetch the instruction
 		auto ins = instructions[PC];
 
@@ -249,10 +261,74 @@ public:
 		cerr << "D <- " << bitset<16>(D) << "(" << D << "), ";
 		cerr << "PC <- " << bitset<16>(PC) << "(" << PC << ")" << endl;
 	}
+
+	inline bool is_finished()
+	{
+		return this->PC == -1;
+	}
+
+	void print_data(ostream& out)
+	{
+		for (int i = 0; i < 10; ++i)
+			out << i << "\t" << std::hex << data[i] << std::dec << endl;
+	}
 };
 
 int main(int argc, char** argv)
 {
 	// format: ./simulator.out instruction_file_loc memory_file_loc
-	// debug output will be printed on cerr
+	// cerr: where debug output will be shown
+	// cout: where memory output will be dumped
+	// cin: NA
+	uint16_t *instructions = new uint16_t[INSTRUCTION_COUNT];
+	int16_t *data = new int16_t[DATA_COUNT];
+
+	// load
+	ifstream ins_file{ argv[1] };
+	for (int i = 0; i < INSTRUCTION_COUNT; ++i)
+	{
+		string s;
+		ins_file >> s;
+		if (ins_file.eof()) break;
+
+		instructions[i] = 0;
+		for (char c : s)
+		{
+			if (c == ' ')
+				continue;
+
+			instructions[i] <<= 1;
+			instructions[i] |= (c - '0');
+		}
+	}
+
+	ifstream data_file{ argv[2] };
+	for (int i = 0; i < DATA_COUNT; ++i)
+	{
+		string s;
+		ins_file >> s;
+		if (ins_file.eof()) break;
+
+		data[i] = 0;
+		for (char c : s)
+		{
+			if (c == ' ')
+				continue;
+
+			data[i] <<= 1;
+			data[i] |= (c - '0');
+		}
+	}
+
+
+	// simulate
+	Hardware hd(instructions, data);
+	hd.reset();
+	while (!hd.is_finished())
+		hd.execute_next();
+
+	// dump
+	hd.print_data(cout);
+
+	return 0;
 }
