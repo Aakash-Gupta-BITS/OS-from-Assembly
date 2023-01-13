@@ -4,11 +4,13 @@
 #include <cassert>
 #include <bitset>
 #include <fstream>
+#include <string>
 
 using namespace std;
 
 const uint16_t INSTRUCTION_COUNT = 1 << 15;	// number of instructions
 const uint16_t DATA_COUNT = 1 << 15;		// number of fields in data memory
+const uint16_t VALID_DATA_LIMIT = 0x6000;
 
 enum class InstructionType : uint8_t
 {
@@ -33,17 +35,17 @@ class Hardware
 {
 private:
 	// Memory elements
-	uint16_t instructions[INSTRUCTION_COUNT];
-	int16_t data[DATA_COUNT];
+	uint16_t *instructions;
+	int16_t *data;
 
 	// Registers
-	int16_t D;
-	int16_t A;
-	uint16_t PC;
+	int16_t D = 0;
+	int16_t A = 0;
+	uint16_t PC = 0;
 
 	InstructionType get_instruction_type(const uint16_t& ins) const
 	{
-		bool A_instruction = ~(ins >> 15);
+		bool A_instruction = !(ins >> 15);
 		bool D_instruction = ((ins >> 13) == 7);
 
 		if (A_instruction == D_instruction)
@@ -55,12 +57,7 @@ private:
 		return InstructionType::C;
 	}
 
-	void execute_A(const uint16_t& ins)
-	{
-		A = ins;
-	}
-
-	int16_t execute_C_a_eq0(const uint8_t& c)
+	int16_t ALU_a_eq_0(const uint8_t& c)
 	{
 		switch (c)
 		{
@@ -121,7 +118,7 @@ private:
 		assert(0);
 	}
 
-	int16_t execute_C_a_neq0(const uint8_t& c)
+	int16_t ALU_a_neq_0(const uint8_t& c)
 	{
 		const int16_t M = data[A];
 		switch (c)
@@ -185,7 +182,7 @@ private:
 		assert(0);
 	}
 
-	void execute_C(const uint16_t& ins)
+	void compute(const uint16_t& ins)
 	{
 		uint8_t j = ins & 07;
 		uint8_t d = (ins & 070) >> 3;
@@ -193,7 +190,7 @@ private:
 		uint8_t a = (ins & 010000) >> 12;
 
 		// get value
-		int16_t alu_out = (a == 0 ? execute_C_a_eq0(c) : execute_C_a_neq0(c));
+		int16_t alu_out = (a == 0 ? ALU_a_eq_0(c) : ALU_a_neq_0(c));
 
 		// get jump
 		if (should_jump(j, alu_out))
@@ -201,10 +198,7 @@ private:
 
 		// get destination
 		if (d & 0b001)
-		{
 			data[A] = alu_out;
-			cerr << "data[A] <- " << bitset<16>(data[A]) << "(" << data[A] << "), ";
-		}
 		if (d & 0b010)
 			D = alu_out;
 		if (d & 0b100)
@@ -212,8 +206,11 @@ private:
 	}
 
 public:
-	Hardware(const uint16_t instructions[INSTRUCTION_COUNT], const int16_t data[DATA_COUNT])
+	Hardware(const uint16_t *instructions, const int16_t *data)
 	{
+		this->instructions = new uint16_t[INSTRUCTION_COUNT];
+		this->data = new int16_t[DATA_COUNT];
+
 		for (int i = 0; i < INSTRUCTION_COUNT; ++i)
 			this->instructions[i] = instructions[i];
 
@@ -225,11 +222,12 @@ public:
 	{
 		PC = 0;
 		cerr << "reset" << endl;
+		cerr << "Instruction     \tA\tD\tMem[A]\tPC" << endl;
 	}
 
 	void execute_next()
 	{
-		if (PC == -1)
+		if (is_finished())
 		{
 			cerr << "end" << endl;
 			return;
@@ -238,17 +236,17 @@ public:
 		// fetch the instruction
 		auto ins = instructions[PC];
 
-		cerr << bitset<16>(ins) << " - ";
+		cerr << bitset<16>(ins) << "\t";
 
 		// Decode the instruction
 		switch (get_instruction_type(ins))
 		{
 		case InstructionType::A:
-			execute_A(ins);
+			A = ins;
 			break;
 
 		case InstructionType::C:
-			execute_C(ins);
+			compute(ins);
 			break;
 
 		default:
@@ -257,78 +255,76 @@ public:
 
 		// Update PC
 		PC = PC + 1;
-		cerr << "A <- " << bitset<16>(A) << "(" << A << "), ";
-		cerr << "D <- " << bitset<16>(D) << "(" << D << "), ";
-		cerr << "PC <- " << bitset<16>(PC) << "(" << PC << ")" << endl;
+		cerr << A << "\t" << D << "\t" << data[A] << "\t" << PC << endl;
 	}
 
 	inline bool is_finished()
 	{
-		return this->PC == -1;
+		return this->PC == uint16_t(-1);
 	}
 
 	void print_data(ostream& out)
 	{
-		for (int i = 0; i < 10; ++i)
-			out << i << "\t" << std::hex << data[i] << std::dec << endl;
+		out << "A:  " << A << endl;
+		out << "D:  " << D << endl;
+		out << "PC: " << PC << endl;
+		for (int i = 0; i <= VALID_DATA_LIMIT; ++i)
+			out << i << "\t" << bitset<16>(data[i]) << "\t(" << data[i] << ")" << endl;
 	}
 };
 
+void load_file_to_memory(char* path, void* dest, int len)
+{
+	uint16_t* target = (uint16_t*)dest;
+
+	ifstream file{ path };
+	for (int i = 0; i < len; ++i)
+	{
+		string s;
+		std::getline(file >> std::ws, s);
+
+		if (file.eof()) break;
+
+		target[i] = 0;
+		for (char c : s)
+		{
+			if (c != '0' && c != '1')
+				continue;
+
+			target[i] <<= 1;
+			target[i] |= (c - '0');
+		}
+	}
+
+	file.close();
+}
+
 int main(int argc, char** argv)
 {
-	// format: ./simulator.out instruction_file_loc memory_file_loc
+	// format: ./simulator.out instruction_file_loc memory_file_loc memory_dump_loc
 	// cerr: where debug output will be shown
-	// cout: where memory output will be dumped
-	// cin: NA
+
 	uint16_t *instructions = new uint16_t[INSTRUCTION_COUNT];
 	int16_t *data = new int16_t[DATA_COUNT];
 
 	// load
-	ifstream ins_file{ argv[1] };
-	for (int i = 0; i < INSTRUCTION_COUNT; ++i)
-	{
-		string s;
-		ins_file >> s;
-		if (ins_file.eof()) break;
-
-		instructions[i] = 0;
-		for (char c : s)
-		{
-			if (c == ' ')
-				continue;
-
-			instructions[i] <<= 1;
-			instructions[i] |= (c - '0');
-		}
-	}
-
-	ifstream data_file{ argv[2] };
-	for (int i = 0; i < DATA_COUNT; ++i)
-	{
-		string s;
-		ins_file >> s;
-		if (ins_file.eof()) break;
-
-		data[i] = 0;
-		for (char c : s)
-		{
-			if (c == ' ')
-				continue;
-
-			data[i] <<= 1;
-			data[i] |= (c - '0');
-		}
-	}
-
+	load_file_to_memory(argv[1], instructions, INSTRUCTION_COUNT);
+	load_file_to_memory(argv[2], data, DATA_COUNT);
 
 	// simulate
 	Hardware hd(instructions, data);
 	hd.reset();
 	while (!hd.is_finished())
 		hd.execute_next();
+	hd.execute_next();
 
 	// dump
-	hd.print_data(cout);
+	ofstream output{ argv[3] };
+	hd.print_data(output);
+	output.close();
 
+	// unallocate
+	delete[] instructions;
+	delete[] data;
 	return 0;
 }
