@@ -1,0 +1,187 @@
+62 51 57 34 28
+TK_ASSIGNOP
+TK_COMMENT
+TK_FIELDID
+TK_ID
+TK_NUM
+TK_RNUM
+TK_FUNID
+TK_RUID
+TK_WITH
+TK_PARAMETERS
+TK_END
+TK_WHILE
+TK_UNION
+TK_ENDUNION
+TK_DEFINETYPE
+TK_AS
+TK_TYPE
+TK_MAIN
+TK_GLOBAL
+TK_PARAMETER
+TK_LIST
+TK_SQL
+TK_SQR
+TK_INPUT
+TK_OUTPUT
+TK_INT
+TK_REAL
+TK_COMMA
+TK_SEM
+TK_COLON
+TK_DOT
+TK_ENDWHILE
+TK_OP
+TK_CL
+TK_IF
+TK_THEN
+TK_ENDIF
+TK_READ
+TK_WRITE
+TK_RETURN
+TK_PLUS
+TK_MINUS
+TK_MUL
+TK_DIV
+TK_CALL
+TK_RECORD
+TK_ENDRECORD
+TK_ELSE
+TK_AND
+TK_OR
+TK_NOT
+TK_LT
+TK_LE
+TK_EQ
+TK_GT
+TK_GE
+TK_NE
+TK_EOF
+TK_WHITESPACE
+TK_ERROR_SYMBOL
+TK_ERROR_PATTERN
+TK_ERROR_LENGTH
+0 1 0123456789
+0 9 bcd
+0 12 aefghijklmnopqrstuvwxyz
+0 13 #
+0 15 _
+0 18 <
+0 23 >
+0 25 =
+0 27 !
+0 29 +
+0 30 -
+0 31 *
+0 32 /
+0 33 .
+0 34 ,
+0 35 :
+0 36 ;
+0 37 &
+0 40 @
+0 43 ~
+0 44 [
+0 45 ]
+0 46 (
+0 47 )
+0 48 %
+1 1 0123456789
+1 2 .
+2 3 0123456789
+3 4 0123456789
+4 5 E
+5 6 +-
+5 7 0123456789
+6 7 0123456789
+7 8 0123456789
+9 10 234567
+9 12 abcdefghijklmnopqrstuvwxyz
+10 10 bcd
+10 11 234567
+11 11 234567
+12 12 abcdefghijklmnopqrstuvwxyz
+13 14 abcdefghijklmnopqrstuvwxyz
+14 14 abcdefghijklmnopqrstuvwxyz
+15 16 abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+16 16 abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+16 17 0123456789
+17 17 0123456789
+18 19 -
+18 22 =
+19 20 -
+20 21 -
+23 24 =
+25 26 =
+27 28 =
+37 38 &
+38 39 &
+40 41 @
+41 42 @
+1 TK_NUM
+4 TK_RNUM
+8 TK_RNUM
+9 TK_FIELDID
+10 TK_ID
+11 TK_ID
+12 TK_FIELDID
+14 TK_RUID
+16 TK_FUNID
+17 TK_FUNID
+18 TK_LT
+21 TK_ASSIGNOP
+22 TK_LE
+23 TK_GT
+24 TK_GE
+26 TK_EQ
+28 TK_NE
+29 TK_PLUS
+30 TK_MINUS
+31 TK_MUL
+32 TK_DIV
+33 TK_DOT
+34 TK_COMMA
+35 TK_COLON
+36 TK_SEM
+39 TK_AND
+42 TK_OR
+43 TK_NOT
+44 TK_SQL
+45 TK_SQR
+46 TK_OP
+47 TK_CL
+48 TK_COMMENT
+50 TK_WHITESPACE
+with TK_WITH
+parameters TK_PARAMETERS 
+end TK_END
+while TK_WHILE
+union TK_UNION
+endunion TK_ENDUNION
+definetype TK_DEFINETYPE
+as TK_AS
+type TK_TYPE
+_main TK_MAIN
+global TK_GLOBAL
+parameter TK_PARAMETER
+list TK_LIST
+input TK_INPUT
+output TK_OUTPUT
+int TK_INT
+real TK_REAL
+endwhile TK_ENDWHILE
+if TK_IF
+then TK_THEN
+endif TK_ENDIF
+read TK_READ
+write TK_WRITE
+return TK_RETURN
+call TK_CALL
+record TK_RECORD
+endrecord TK_ENDRECORD
+else TK_ELSE
+num_tokens num_states num_transitions num_finalstates num_keywords
+'num_tokens' lines, each having one string representing the token
+'num_transitions' lines, each having 3 entries: start state, end state and char stream
+'num_finalstates' lines, each having 2 entries: state number and state TOKEN
+'num_keywords' lines, each having 2 entries: keyword and corresponding TOKEN

@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{53d19ce2-9309-4fce-bb1a-098c3e849a21}</ProjectGuid>
-    <RootNamespace>BinarySimulator</RootNamespace>
+    <ProjectGuid>{75c8847d-c146-441f-b934-082fb53f7813}</ProjectGuid>
+    <RootNamespace>Assembler</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -127,12 +127,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CPU.cpp" />
+    <ClCompile Include="Assembler.cpp" />
+    <ClCompile Include="Lexer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="input\data.txt" />
-    <Text Include="input\instructions.txt" />
-    <Text Include="output\dump.txt" />
+    <None Include="cpp.hint" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Buffer.h" />
+    <ClInclude Include="Lexer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="DFA.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

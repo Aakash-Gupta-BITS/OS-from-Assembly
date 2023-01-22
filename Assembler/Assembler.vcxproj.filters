@@ -15,18 +15,26 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CPU.cpp">
+    <ClCompile Include="Assembler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Lexer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="input\instructions.txt">
-      <Filter>Resource Files</Filter>
-    </Text>
-    <Text Include="input\data.txt">
-      <Filter>Resource Files</Filter>
-    </Text>
-    <Text Include="output\dump.txt">
+    <None Include="cpp.hint" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Lexer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="DFA.txt">
       <Filter>Resource Files</Filter>
     </Text>
   </ItemGroup>
