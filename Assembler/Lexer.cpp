@@ -10,7 +10,7 @@ DFA dfa;
 std::ostream& operator<< (std::ostream& out, const Token& token)
 {
 	if (token.type == TokenType::TK_ERROR_LENGTH)
-		out << "Line " << token.line_number << "\t\terror: Identifier length is greater than the prescribed length.";
+		out << "Line " << token.line_number << "\t\terror: Identifier length is greater than 30.";
 	else if (token.type == TokenType::TK_ERROR_SYMBOL)
 		out << "Line " << token.line_number << "\t\terror: Unknwon Symbol <" << token.lexeme << ">.";
 	else if (token.type == TokenType::TK_ERROR_PATTERN)
@@ -51,18 +51,20 @@ void loadDFA()
 			dfa.productions[from][c] = to;
 	}
 
+	// state 12 - accept state for comment
 	for (int i = 0; i < 128; i++)
-		dfa.productions[48][i] = 48;		// state 48 - accept state for comment
+		dfa.productions[12][i] = 12;
 
-	dfa.productions[48]['\n'] = -1;
+	dfa.productions[12]['\n'] = -1;
 
+	// state 13 - accept state for whitespace
 	dfa.productions[0][' ']
 		= dfa.productions[0]['\t']
 		= dfa.productions[0]['\r']
-		= dfa.productions[50][' ']
-		= dfa.productions[50]['\t']
-		= dfa.productions[50]['\r']
-		= 50;
+		= dfa.productions[13][' ']
+		= dfa.productions[13]['\t']
+		= dfa.productions[13]['\r']
+		= 13;
 
 	// Load Final States
 	dfa.finalStates.clear();
@@ -104,17 +106,14 @@ void onTokenFromDFA(Token*& token, Buffer& buffer)
 	BUFF[token->length] = 0;
 	token->lexeme = BUFF;
 
-	if (token->type == TokenType::TK_ID || token->type == TokenType::TK_FUNID || token->type == TokenType::TK_FIELDID)
+	if (token->type == TokenType::TK_SYMBOL)
 	{
 		auto res = dfa.lookupTable.find(token->lexeme);
 		if (res != dfa.lookupTable.end())
 			token->type = dfa.lookupTable.at(token->lexeme);
 	}
 
-	if (token->type == TokenType::TK_ID && token->length > 20)
-		token->type = TokenType::TK_ERROR_LENGTH;
-
-	if (token->type == TokenType::TK_FUNID && token->length > 30)
+	if (token->type == TokenType::TK_SYMBOL && token->length > 30)
 		token->type = TokenType::TK_ERROR_LENGTH;
 }
 
