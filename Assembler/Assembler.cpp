@@ -133,18 +133,14 @@ class Parser
         for (int i = from; i <= to; ++i)
             comp_string += current_tokens[i]->lexeme;
         comp = new ASTNode;
-        comp->token = new Token{
+        comp->token = new Token
+        {
             TokenType::UNINITIALISED,
             comp_string,
-            current_tokens[0]->line_number,
-            current_tokens[0]->start_index,
-
-        }
-        /*	TokenType type = TokenType::UNINITIALISED;
-	std::string lexeme;
-	int line_number = 0;
-	int start_index = 0;
-	int length = 0;*/
+            current_tokens[from]->line_number,
+            current_tokens[from]->start_index,
+            current_tokens[to]->start_index + current_tokens[to]->length - current_tokens[from]->start_index
+        };
 
         return new ASTNode
         {
