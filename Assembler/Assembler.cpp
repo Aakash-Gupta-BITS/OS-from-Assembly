@@ -1,18 +1,28 @@
 #include <iostream>
+#include <bitset>
 #include "Lexer.h"
 
 using namespace std;
+
+enum class InstructionType
+{
+    A_INSTRUCTION,
+    C_INSTRUCTION,
+    L_INSTRUCTION
+};
+
+struct ASTNode
+{
+    Token* token = nullptr;
+    InstructionType type;
+    std::vector<ASTNode*> children;
+    ASTNode* sibling = nullptr;
+};
 
 class Parser
 {
     Buffer* buffer;
     Token* last_token;
-
-public:
-    Parser(Buffer* buffer) : buffer{ std::move(buffer) }
-    {
-        this->last_token = nullptr;
-    }
 
     vector<Token*> get_next_line()
     {
@@ -30,27 +40,19 @@ public:
         last_token = new_token;
         return tokens;
     }
+
+public:
+    Parser(Buffer* buffer) : buffer{ std::move(buffer) }
+    {
+        this->last_token = nullptr;
+    }
+
 };
 
 int main()
 {
     loadDFA();
     Buffer* buffer = new Buffer("demo_program.asm");
-    Parser p(buffer);
-
-    while (true)
-    {
-        auto tokens = p.get_next_line();
-        if (tokens[0]->type == TokenType::TK_EOF)
-            break;
-
-        cout << "Line: " << tokens[0]->line_number << ": " << endl;
-        for (auto& x : tokens)
-        {
-            cout << "\t" << *x << endl;
-            delete x;
-        }
-    }
-
+    
     delete buffer;
 }
