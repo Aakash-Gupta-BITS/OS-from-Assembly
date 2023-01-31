@@ -1,6 +1,7 @@
 #include "Lexer.h"
 #include <cassert>
 #include <iomanip>
+#include <sstream>
 using namespace std;
 
 const char* LexerLoc = "DFA.txt";
@@ -10,7 +11,12 @@ DFA dfa;
 std::ostream& operator<< (std::ostream& out, const Token& token)
 {
 	if (token.type == TokenType::TK_ERROR_LENGTH)
-		out << "Line " << token.line_number << "\t\terror: Identifier length is greater than 30.";
+	{
+		if (token.lexeme[0] >= '0' && token.lexeme[0] <= '9')
+			out << "Line " << token.line_number << "\t\terror: Number must be less than 32767.";
+		else
+			out << "Line " << token.line_number << "\t\terror: Identifier length is greater than 30.";
+	}
 	else if (token.type == TokenType::TK_ERROR_SYMBOL)
 		out << "Line " << token.line_number << "\t\terror: Unknwon Symbol <" << token.lexeme << ">.";
 	else if (token.type == TokenType::TK_ERROR_PATTERN)
@@ -115,6 +121,21 @@ void onTokenFromDFA(Token*& token, Buffer& buffer)
 
 	if (token->type == TokenType::TK_SYMBOL && token->length > 30)
 		token->type = TokenType::TK_ERROR_LENGTH;
+
+	if (token->type == TokenType::TK_NUM)
+	{
+		// make sure it fits in 15 bits
+		if (token->lexeme.size() > 5)
+			token->type = TokenType::TK_ERROR_LENGTH;
+		else 
+		{
+			stringstream sstr{ token->lexeme };
+			int x;
+			sstr >> x;
+			if (x > 32767)
+				token->type = TokenType::TK_ERROR_LENGTH;
+		}
+	}
 }
 
 Token* getTokenFromDFA(Buffer& buffer)
