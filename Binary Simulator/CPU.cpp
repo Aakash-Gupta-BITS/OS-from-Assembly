@@ -234,6 +234,7 @@ public:
 			break;
 
 		case InstructionType::C:
+			if (ins != 0xffff)
 			compute(ins);
 			break;
 
@@ -243,7 +244,10 @@ public:
 
 		// Update PC
 		PC = PC + 1;
-		cerr << A << "\t" << D << "\t" << data[A] << "\t" << PC << endl;
+		if (ins == 0xffff)
+			cerr << "nop" << endl;
+		else
+			cerr << A << "\t" << D << "\t" << data[A] << "\t" << PC << endl;
 	}
 
 	inline bool is_finished()
@@ -304,6 +308,7 @@ int main(int argc, char** argv)
 	hd.reset();
 	while (!hd.is_finished())
 		hd.execute_next();
+	// to print "end"
 	hd.execute_next();
 
 	// dump
