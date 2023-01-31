@@ -221,5 +221,6 @@ Token* getNextToken(Buffer& buffer)
 
 	Token* end = new Token;
 	end->type = TokenType::TK_EOF;
+	end->line_number = buffer.line_number;
 	return end;
 }

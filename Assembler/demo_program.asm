@@ -22,4 +22,5 @@
 
 (END)
 	@END
+	A=-1
 	0;JMP // infinite loop
