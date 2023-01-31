@@ -19,7 +19,6 @@ class Parser
     static map<string, bitset<7>> comp_map;
     static map<TokenType, bitset<3>> jmp_map;
 
-    int ROM_INDEX = 0;
     int RAM_INDEX = 16;
 
     map<string, int> jmp_locations;
@@ -256,7 +255,7 @@ class Parser
             exit(-1);
         }
 
-        jmp_locations[line[1]->lexeme] = ROM_INDEX;
+        jmp_locations[line[1]->lexeme] = index;
     }
 
     void pass2_A(int index)
@@ -336,9 +335,6 @@ public:
                 pass1_L(i);
             else
                 pass1_C(i);
-
-            if (tokens[i][0]->type != TokenType::TK_OB)
-                ROM_INDEX++;
         }
 
         for (int i = 0; i < tokens.size(); ++i)
@@ -370,4 +366,7 @@ int main()
     loadDFA();
     Buffer buffer("demo_program.asm");
     Parser p(buffer);
+    auto b = p.convert_to_binary();
+    for (auto& x : b)
+        cout << x << endl;
 }
