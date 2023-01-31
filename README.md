@@ -38,4 +38,16 @@ and the following data file:
 
 ```
 
+### Special Instructions
+1. Following instruction is used to define a nop operation:
+   ```
+   1111 1111 1111 1111
+   ```
+   Usage: In directly mapping each line of assembly to binary, we can refer line numbers directly to jump to binary location.
+
 Note that there should be a newline at the end of each input file. Also, when `PC` is set to $65535$, the program finishes. In the above example, copy last two lines from instructions to set `PC` to $65535$.
+
+## Assembler
+### Running
+### I/O Redirections
+### File Format
