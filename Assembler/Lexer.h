@@ -6,7 +6,7 @@
 #include <map>
 #include <vector>
 
-extern const char* LexerLoc;
+extern char* LexerLoc;
 
 enum class TokenType
 {

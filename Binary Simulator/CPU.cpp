@@ -296,12 +296,19 @@ int main(int argc, char** argv)
 	// format: ./simulator.out instruction_file_loc memory_file_loc memory_dump_loc
 	// cerr: where debug output will be shown
 
+	if (argc != 3 && argc != 4)
+	{
+		cerr << "Invalid number of inputs!!" << endl;
+		assert(0);
+	}
+
 	uint16_t *instructions = new uint16_t[INSTRUCTION_COUNT];
 	int16_t *data = new int16_t[DATA_COUNT];
 
 	// load
 	load_file_to_memory(argv[1], instructions, INSTRUCTION_COUNT);
-	load_file_to_memory(argv[2], data, DATA_COUNT);
+	if (argc == 4)
+		load_file_to_memory(argv[2], data, DATA_COUNT);
 
 	// simulate
 	Hardware hd(instructions, data);
@@ -311,10 +318,13 @@ int main(int argc, char** argv)
 	// to print "end"
 	hd.execute_next();
 
+	cerr << "Flushing output to a dump file..." << endl;
 	// dump
-	ofstream output{ argv[3] };
+	ofstream output{ argv[argc - 1] };
 	hd.print_data(output);
 	output.close();
+
+	cerr << "Flushing output done..." << endl;
 
 	// unallocate
 	delete[] instructions;

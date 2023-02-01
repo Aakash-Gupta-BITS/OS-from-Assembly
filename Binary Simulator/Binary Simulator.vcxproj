@@ -129,11 +129,6 @@
   <ItemGroup>
     <ClCompile Include="CPU.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="input\data.txt" />
-    <Text Include="input\instructions.txt" />
-    <Text Include="output\dump.txt" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -4,8 +4,6 @@
 #include <sstream>
 using namespace std;
 
-const char* LexerLoc = "DFA.txt";
-
 DFA dfa;
 
 std::ostream& operator<< (std::ostream& out, const Token& token)
