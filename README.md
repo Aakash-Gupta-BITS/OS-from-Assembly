@@ -9,10 +9,14 @@ There are many projects. One which simulates the binary file is completed.
    g++ -o simulator.out CPU.cpp
    ```
    
-2. To run the instructions, do the following:
+2. To run the instructions which depends on predefined memory contents, do the following:
 
    ```
    ./simulator.out <instruction_file_location> <memory_file_location> <memory_dump_location>
+   ```
+3. To run the instructions which doesn't depend on predefined memory contents, do the following:
+   ```
+   ./simulator.out <instruction_file_location> <memory_dump_location>
    ```
 
 ### I/O Redirections
@@ -60,7 +64,7 @@ This is second project. It converts a valid assembly program to corresponding bi
 ### Running
 1. Compilation has to be done via the following command:
    ```{bash}
-   g++ ...
+   g++ -o assembler.out *.cpp
    ```
 2. To convert the assembly program to binary, do the following:
    ```{bash}
