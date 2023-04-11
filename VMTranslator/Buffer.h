@@ -38,6 +38,7 @@ public:
 
         file_name = std::string(fileLoc);
         file_name = file_name.substr(file_name.find_last_of("/\\") + 1);
+        file_name = file_name.substr(0,file_name.find_last_of("/."));
 	}
 
 	const char& getChar(int index)

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include "SemanticAnalysis.h"
+#include "Assembler.h"
 
 using namespace std;
 char* LexerLoc;
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     if (argc != 5)
     {
         cerr << "Invalid number of arguments!" << endl;
-        cerr << "Usage: ./assembler.out <DFA file> <Grammar file> <input_vm_file_location> <output_assembly_location>" << endl;
+        cerr << "Usage: ./translator.out <DFA file> <Grammar file> <input_vm_file_location> <output_assembly_location>" << endl;
         exit(-1);
     }
 
@@ -78,6 +78,9 @@ int main(int argc, char** argv)
     for (auto &x: lst)
         cerr << "Line number " << x.first << ": " << x.second << endl;
 
+    if (!lst.empty())
+        exit(-1);
+
     // Assembly Generation
     ofstream output_file{ argv[4] };
 
@@ -86,5 +89,7 @@ int main(int argc, char** argv)
         cerr << "Error opening output file for binary!" << endl;
         exit(-1);
     }
-
+    cerr << endl;
+    cerr << "Writing assembly output" << endl;
+    writeAssembly(astNode, buffer.file_name, output_file);
 }

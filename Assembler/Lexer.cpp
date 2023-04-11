@@ -148,7 +148,7 @@ Token* getTokenFromDFA(Buffer& buffer)
 	int cur_state = 0;
 	// start index = index of character to read next
 
-	while (1)
+	while (true)
 	{
 		char input = buffer.getChar(start_index);
 

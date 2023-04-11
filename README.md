@@ -58,6 +58,13 @@ Usage: In directly mapping each line of assembly to binary, we can refer line nu
 
 Note that there should be a newline at the end of each input file. Also, when `PC` is set to $65535$, the program finishes. In the above example, copy last two lines from instructions to set `PC` to $65535$.
 
+### Semantic Special Cases
+Consider the following command:
+```
+AM = M + 1
+```
+In above command, the result is calculated first and set to both `A` and `M` simultaneously. Thus, there is no dependency between `A` and `M` on lhs.
+
 ## Assembler
 This is second project. It converts a valid assembly program to corresponding binary output.
 

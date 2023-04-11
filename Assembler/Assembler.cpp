@@ -17,6 +17,12 @@ int main(int argc, char** argv)
     LexerLoc = argv[1];
     loadDFA();
     Buffer buffer(argv[2]);
+
+    for (auto token = getNextToken(buffer); token->type!= TokenType::TK_EOF; token = getNextToken(buffer))
+        cout << *token << endl;
+
+    return 0;
+
     Parser p(buffer);
     auto b = p.convert_to_binary();
     ofstream output_file{ argv[3] };
