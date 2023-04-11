@@ -32,6 +32,7 @@ enum class TokenType
     TK_AND,
     TK_OR,
     TK_NOT,
+    TK_NEWLINE,
     TK_WHITESPACE,
     TK_EOF,
     TK_ERROR_SYMBOL,

@@ -1,0 +1,79 @@
+26 11 31 26
+eps
+TK_PUSH
+TK_POP
+TK_LOCAL
+TK_ARGUMENT
+TK_STATIC
+TK_CONSTANT
+TK_THIS
+TK_THAT
+TK_POINTER
+TK_TEMP
+TK_NUM
+TK_SYMBOL
+TK_ADD
+TK_SUB
+TK_MINUS
+TK_NEG
+TK_EQ
+TK_GT
+TK_LT
+TK_AND
+TK_OR
+TK_NOT
+TK_NEWLINE
+TK_WHITESPACE
+TK_EOF
+start
+lines
+line_end_state
+op
+segment
+alu_op
+stack_op_name
+seg_name
+arithmetic
+logical
+boolean
+start lines
+lines op line_end_state
+lines TK_EOF
+lines TK_NEWLINE lines
+line_end_state TK_NEWLINE lines
+line_end_state TK_EOF
+op segment
+op alu_op
+segment stack_op_name seg_name TK_NUM
+stack_op_name TK_POP
+stack_op_name TK_PUSH
+seg_name TK_LOCAL
+seg_name TK_ARGUMENT
+seg_name TK_STATIC
+seg_name TK_CONSTANT
+seg_name TK_THIS
+seg_name TK_THAT
+seg_name TK_POINTER
+seg_name TK_TEMP
+alu_op arithmetic
+alu_op logical
+alu_op boolean
+arithmetic TK_ADD
+arithmetic TK_SUB
+arithmetic TK_NEG
+logical TK_EQ
+logical TK_GT
+logical TK_LT
+boolean TK_AND
+boolean TK_OR
+boolean TK_NOT
+
+num_terminals num_nonterminals num_productions index_start_symbol
+'num_nonterminals' lines each having one string representing the non terminals
+'num_productions' lines each having the follownig format: //convention to add space at the end of rule.
+Non_Terminal Production
+for example for S-ABC we have line entry as
+'S A B C'
+and for S-ABC|De we have two lines as:
+S A B C
+S D e

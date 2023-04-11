@@ -64,6 +64,9 @@ void loadDFA()
 		= dfa.productions[4]['\r']
 		= 4;
 
+    // state 5 - accept state for new line
+    dfa.productions[0]['\n'] = 5;
+
 	// Load Final States
 	dfa.finalStates.clear();
 	dfa.finalStates.assign(dfa.num_states, TokenType::UNINITIALISED);
@@ -188,16 +191,12 @@ Token* getNextToken(Buffer& buffer)
 {
 	while (buffer.getTopChar() != '\0')
 	{
-		if (buffer.getTopChar() == '\n')
-		{
-			buffer.line_number++;
-			buffer.start_index++;
-			continue;
-		}
-
 		Token* token = getTokenFromDFA(buffer);
 
 		assert(token != nullptr);
+
+        if (token->type == TokenType::TK_NEWLINE)
+            buffer.line_number++;
 
 		token->start_index = buffer.start_index;
 		token->line_number = buffer.line_number;
