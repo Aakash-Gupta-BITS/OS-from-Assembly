@@ -1,4 +1,4 @@
-28 6 5 4 19
+31 6 5 5 22
 TK_PUSH
 TK_POP
 TK_LOCAL
@@ -21,6 +21,9 @@ TK_LT
 TK_AND
 TK_OR
 TK_NOT
+TK_LABEL
+TK_GOTO
+TK_IF
 TK_NEWLINE
 TK_WHITESPACE
 TK_EOF
@@ -32,6 +35,7 @@ TK_ERROR_LENGTH
 2 2 0123456789
 0 3 qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_.$:
 3 3 qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_.$:0123456789
+1 TK_MINUS
 2 TK_NUM
 3 TK_SYMBOL
 4 TK_WHITESPACE
@@ -55,6 +59,9 @@ lt TK_LT
 and TK_AND
 or TK_OR
 not TK_NOT
+if TK_IF
+label TK_LABEL
+goto TK_GOTO
 num_tokens num_states num_transitions num_finalstates num_keywords
 'num_tokens' lines, each having one string representing the token
 'num_transitions' lines, each having 3 entries: start state, end state and char stream

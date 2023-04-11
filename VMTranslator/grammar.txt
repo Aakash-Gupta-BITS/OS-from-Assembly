@@ -1,4 +1,4 @@
-26 11 31 26
+29 12 35 29
 eps
 TK_PUSH
 TK_POP
@@ -22,6 +22,9 @@ TK_LT
 TK_AND
 TK_OR
 TK_NOT
+TK_GOTO
+TK_LABEL
+TK_IF
 TK_NEWLINE
 TK_WHITESPACE
 TK_EOF
@@ -29,6 +32,7 @@ start
 lines
 line_end_state
 op
+branch
 segment
 alu_op
 stack_op_name
@@ -67,6 +71,10 @@ logical TK_LT
 boolean TK_AND
 boolean TK_OR
 boolean TK_NOT
+op branch
+branch TK_LABEL TK_SYMBOL
+branch TK_GOTO TK_SYMBOL
+branch TK_IF TK_MINUS TK_GOTO TK_SYMBOL
 
 num_terminals num_nonterminals num_productions index_start_symbol
 'num_nonterminals' lines each having one string representing the non terminals

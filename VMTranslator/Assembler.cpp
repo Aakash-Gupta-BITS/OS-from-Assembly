@@ -154,6 +154,30 @@ void boolean_writer(ASTNode* node, const string& source_file_name, std::ostream&
     }
 }
 
+void branch_writer(ASTNode* node, const string& source_file_name, std::ostream& out)
+{
+    auto type = node->token->type;
+    out << endl << " // " << node->token->lexeme;
+    if (node->token->type == TokenType::TK_IF)
+        out << "-goto";
+    out << " " << node->children[0]->token->lexeme << endl;
+
+    if (node->token->type == TokenType::TK_LABEL)
+        out << "(" << node->children[0]->token->lexeme << ")" << endl;
+    else if (node->token->type == TokenType::TK_GOTO)
+        out << "  @" << node->children[0]->token->lexeme << endl << "  0; JMP" << endl;
+    else if (node->token->type == TokenType::TK_IF)
+    {
+        out << "  @SP" << endl;
+        out << "  AM = M - 1" << endl;
+        out << "  D = M" << endl;
+        out << "  @" << node->children[0]->token->lexeme << endl;
+        out << "  D; JNE" << endl;
+    }
+    else
+        assert(false);
+}
+
 void writeAssembly(ASTNode* node, const string& source_file_name, std::ostream& out)
 {
     assert(node);
@@ -179,8 +203,14 @@ void writeAssembly(ASTNode* node, const string& source_file_name, std::ostream& 
             case TokenType::TK_OR:
             case TokenType::TK_NOT:
                 boolean_writer(line, source_file_name, out);
+                break;
+            case TokenType::TK_IF:
+            case TokenType::TK_GOTO:
+            case TokenType::TK_LABEL:
+                branch_writer(line, source_file_name, out);
+                break;
             default:
-                cerr << "Line: " << node->token->line_number << ": Not handled in assembler yet!!" << endl;
+                cerr << "Line: " << line->token->line_number << ": Not handled in assembler yet!!" << endl;
                 exit(-1);
         }
     }
