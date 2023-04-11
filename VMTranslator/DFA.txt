@@ -1,4 +1,4 @@
-31 6 5 5 22
+34 6 5 5 25
 TK_PUSH
 TK_POP
 TK_LOCAL
@@ -24,6 +24,9 @@ TK_NOT
 TK_LABEL
 TK_GOTO
 TK_IF
+TK_FUNCTION
+TK_CALL
+TK_RETURN
 TK_NEWLINE
 TK_WHITESPACE
 TK_EOF
@@ -62,6 +65,9 @@ not TK_NOT
 if TK_IF
 label TK_LABEL
 goto TK_GOTO
+function TK_FUNCTION
+call TK_CALL
+return TK_RETURN
 num_tokens num_states num_transitions num_finalstates num_keywords
 'num_tokens' lines, each having one string representing the token
 'num_transitions' lines, each having 3 entries: start state, end state and char stream

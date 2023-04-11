@@ -137,6 +137,34 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent)
         node->children.resize(1);
         node->children[0] = createAST(input->children[3], input);
     }
+    else if (input->productionNumber == 35)
+    {
+        // op ==> method
+        delete node;
+        return createAST(input->children[0], input);
+    }
+    else if (input->productionNumber == 36)
+    {
+        // method ==> TK_CALL TK_SYMBOL TK_NUM
+        node->token = copy_token(input->children[0]->token);
+        node->children.resize(2);
+        node->children[0] = createAST(input->children[1], input);
+        node->children[1] = createAST(input->children[2], input);
+    }
+    else if (input->productionNumber == 37)
+    {
+        // method ==> TK_FUNCTION TK_SYMBOL TK_NUM
+        node->token = copy_token(input->children[0]->token);
+        node->children.resize(2);
+        node->children[0] = createAST(input->children[1], input);
+        node->children[1] = createAST(input->children[2], input);
+    }
+    else if (input->productionNumber == 37)
+    {
+        // method ==> TK_RETURN
+        delete node;
+        return createAST(input->children[0], input);
+    }
 
     return node;
 }
