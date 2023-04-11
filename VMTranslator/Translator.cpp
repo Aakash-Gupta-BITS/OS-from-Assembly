@@ -91,5 +91,15 @@ int main(int argc, char** argv)
     }
     cerr << endl;
     cerr << "Writing assembly output" << endl;
+    output_file << "@10\n"
+                   "D = A\n"
+                   "@LCL\n"
+                   "M = D\n"
+                   "\n"
+                   "@256\n"
+                   "D = A\n"
+                   "@SP\n"
+                   "M = D" << endl;
     writeAssembly(astNode, buffer.file_name, output_file);
+    output_file << "A=-1\n0;JMP" << endl;
 }
