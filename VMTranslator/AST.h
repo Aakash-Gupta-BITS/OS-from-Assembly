@@ -17,4 +17,4 @@ struct ASTNode
     friend std::ostream& operator<<(std::ostream&, const ASTNode&);
 };
 
-ASTNode* createAST(const ParseTreeNode*, const ParseTreeNode* parent = nullptr);
+ASTNode* createAST(const ParseTreeNode*, const ParseTreeNode* parent = nullptr, ASTNode* inherited = nullptr);

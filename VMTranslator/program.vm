@@ -1,3 +1,4 @@
+function main 1
 push constant 5
 pop local 0
 
@@ -20,3 +21,8 @@ pop local 1
 goto START
 
 label END
+
+function main2 456
+call main 5
+return
+function main 4

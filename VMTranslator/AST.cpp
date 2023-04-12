@@ -30,7 +30,7 @@ Token* copy_token(Token* input)
     return out;
 }
 
-ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent)
+ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTNode* inherited)
 {
     assert(input != nullptr);
 
@@ -49,55 +49,96 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent)
 
     if (input->productionNumber == 0)
     {
-        // start ==> lines
+        // start ==> TK_FUNCTION TK_SYMBOL TK_NUM func_start
         node->children.resize(1);
         node->children[0] = createAST(input->children[0], input);
+        node->children[0]->children.resize(3);
+        node->children[0]->children[0] = createAST(input->children[1], input);
+        node->children[0]->children[1] = createAST(input->children[2], input);
+        node->children[0]->children[2] = createAST(input->children[3], input, node->children[0]);
     }
     else if (input->productionNumber == 1)
     {
-        // lines ==> op line_end_state
+        // start ==> TK_NEWLINE start
         delete node;
-        auto op = createAST(input->children[0], input);
-        op->sibling = createAST(input->children[1], input);
-        return op;
+        return createAST(input->children[1], input);
     }
     else if (input->productionNumber == 2)
     {
-        // lines ==> TK_EOF
+        // start ==> TK_EOF
         delete node;
         return nullptr;
     }
     else if (input->productionNumber == 3)
     {
-        // lines ==> TK_NEWLINE lines
+        // func_start ==> TK_NEWLINE line_start
         delete node;
-        return createAST(input->children[1], input);
+        return createAST(input->children[1], input, inherited);
     }
     else if (input->productionNumber == 4)
     {
-        // line_end_state ==> TK_NEWLINE lines
-        delete node;
-        return createAST(input->children[1], input);
-    }
-    else if (input->productionNumber == 5)
-    {
-        // line_end_state ==> TK_EOF
+        // func_start ==> TK_EOF
         delete node;
         return nullptr;
     }
+    else if (input->productionNumber == 5)
+    {
+        // line_start ==> op line_end
+        delete node;
+        auto op = createAST(input->children[0], input);
+        op->sibling = createAST(input->children[1], input, inherited);
+        return op;
+    }
     else if (input->productionNumber == 6)
     {
-        // op ==> segment
+        // line_start ==> TK_NEWLINE line_start
         delete node;
-        return createAST(input->children[0], input);
+        return createAST(input->children[1], input, inherited);
     }
     else if (input->productionNumber == 7)
     {
-        // op ==> alu_op
+        // line_start ==> TK_FUNCTION TK_SYMBOL TK_NUM func_start
+        auto func = createAST(input->children[0], input);
+        func->children.resize(3);
+        func->children[0] = createAST(input->children[1], input);
+        func->children[1] = createAST(input->children[2], input);
+        func->children[2] = createAST(input->children[3], input, func);
+        inherited->sibling = func;
+        return nullptr;
+    }
+    else if (input->productionNumber == 8)
+    {
+        // line_start ==> TK_EOF
+        delete node;
+        return nullptr;
+    }
+    else if (input->productionNumber == 9)
+    {
+        // line_end ==> TK_EOF
+        delete node;
+        return nullptr;
+    }
+    else if (input->productionNumber == 10)
+    {
+        // line_end ==> TK_NEWLINE line_start
+        delete node;
+        return createAST(input->children[1], input, inherited);
+    }
+    else if (input->productionNumber >= 11 && input->productionNumber <= 14)
+    {
+        // op ==> segment | alu_op | branch | TK_RETURN
         delete node;
         return createAST(input->children[0], input);
     }
-    else if (input->productionNumber == 8)
+    else if (input->productionNumber == 15)
+    {
+        // op ==> TK_CALL TK_SYMBOL TK_NUM
+        node->token = copy_token(input->children[0]->token);
+        node->children.resize(2);
+        node->children[0] = createAST(input->children[1], input);
+        node->children[1] = createAST(input->children[2], input);
+    }
+    else if (input->productionNumber == 16)
     {
         // segment ==> stack_op_name seg_name TK_NUM
         node->token = copy_token(input->children[0]->children[0]->token);
@@ -105,65 +146,31 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent)
         node->children[0] = createAST(input->children[1], input);
         node->children[1] = createAST(input->children[2], input);
     }
-    else if (input->productionNumber >= 9 && input->productionNumber <= 30)
+    else if (input->productionNumber >= 17 && input->productionNumber <= 38)
     {
         delete node;
         return createAST(input->children[0], input);
     }
-    else if (input->productionNumber == 31)
-    {
-        // op ==> branch
-        delete node;
-        return createAST(input->children[0], input);
-    }
-    else if (input->productionNumber == 32)
+    else if (input->productionNumber == 39)
     {
         // branch ==> TK_LABEL TK_SYMBOL
         node->token = copy_token(input->children[0]->token);
         node->children.resize(1);
         node->children[0] = createAST(input->children[1], input);
     }
-    else if (input->productionNumber == 33)
+    else if (input->productionNumber == 40)
     {
         // branch ==> TK_GOTO TK_SYMBOL
         node->token = copy_token(input->children[0]->token);
         node->children.resize(1);
         node->children[0] = createAST(input->children[1], input);
     }
-    else if (input->productionNumber == 34)
+    else if (input->productionNumber == 41)
     {
         // branch ==> TK_IF TK_MINUS TK_GOTO TK_SYMBOL
         node->token = copy_token(input->children[0]->token);
         node->children.resize(1);
         node->children[0] = createAST(input->children[3], input);
-    }
-    else if (input->productionNumber == 35)
-    {
-        // op ==> method
-        delete node;
-        return createAST(input->children[0], input);
-    }
-    else if (input->productionNumber == 36)
-    {
-        // method ==> TK_CALL TK_SYMBOL TK_NUM
-        node->token = copy_token(input->children[0]->token);
-        node->children.resize(2);
-        node->children[0] = createAST(input->children[1], input);
-        node->children[1] = createAST(input->children[2], input);
-    }
-    else if (input->productionNumber == 37)
-    {
-        // method ==> TK_FUNCTION TK_SYMBOL TK_NUM
-        node->token = copy_token(input->children[0]->token);
-        node->children.resize(2);
-        node->children[0] = createAST(input->children[1], input);
-        node->children[1] = createAST(input->children[2], input);
-    }
-    else if (input->productionNumber == 37)
-    {
-        // method ==> TK_RETURN
-        delete node;
-        return createAST(input->children[0], input);
     }
 
     return node;

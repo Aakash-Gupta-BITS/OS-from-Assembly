@@ -70,6 +70,7 @@ int main(int argc, char** argv)
     printAST(cerr,astNode);
     cerr << endl;
 
+    return 0;
     // Type Checking
     cerr << "TYPE CHECKING PHASE" << endl;
     auto lst = getErrorList(astNode);

@@ -1,4 +1,4 @@
-32 13 39 32
+32 13 42 32
 eps
 TK_PUSH
 TK_POP
@@ -32,26 +32,34 @@ TK_NEWLINE
 TK_WHITESPACE
 TK_EOF
 start
-lines
-line_end_state
+func_start
+line_start
+line_end
 op
 segment
-alu_op
-branch
-method
 stack_op_name
 seg_name
+alu_op
 arithmetic
 logical
 boolean
-start lines
-lines op line_end_state
-lines TK_EOF
-lines TK_NEWLINE lines
-line_end_state TK_NEWLINE lines
-line_end_state TK_EOF
+branch
+start TK_FUNCTION TK_SYMBOL TK_NUM func_start
+start TK_NEWLINE start
+start TK_EOF
+func_start TK_NEWLINE line_start
+func_start TK_EOF
+line_start op line_end
+line_start TK_NEWLINE line_start
+line_start TK_FUNCTION TK_SYMBOL TK_NUM func_start
+line_start TK_EOF
+line_end TK_EOF
+line_end TK_NEWLINE line_start
 op segment
 op alu_op
+op branch
+op TK_RETURN
+op TK_CALL TK_SYMBOL TK_NUM
 segment stack_op_name seg_name TK_NUM
 stack_op_name TK_POP
 stack_op_name TK_PUSH
@@ -75,14 +83,9 @@ logical TK_LT
 boolean TK_AND
 boolean TK_OR
 boolean TK_NOT
-op branch
 branch TK_LABEL TK_SYMBOL
 branch TK_GOTO TK_SYMBOL
 branch TK_IF TK_MINUS TK_GOTO TK_SYMBOL
-op method
-method TK_CALL TK_SYMBOL TK_NUM
-method TK_FUNCTION TK_SYMBOL TK_NUM
-method TK_RETURN
 
 num_terminals num_nonterminals num_productions index_start_symbol
 'num_nonterminals' lines each having one string representing the non terminals
