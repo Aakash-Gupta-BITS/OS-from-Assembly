@@ -75,8 +75,8 @@
   // function Main.main 0
 (Main.main)
 
-  // push constant 10
-  @10  // D = 10
+  // push constant 0
+  @0  // D = 0
   D = A
   @SP  // RAM[SP] = D
   A = M
@@ -84,14 +84,204 @@
   @SP  // SP++
   M = M + 1
 
-  // push constant 30
-  @30  // D = 30
+  // push constant 0
+  @0  // D = 0
   D = A
   @SP  // RAM[SP] = D
   A = M
   M = D
   @SP  // SP++
   M = M + 1
+
+  // push constant 0
+  @0  // D = 0
+  D = A
+  @SP  // RAM[SP] = D
+  A = M
+  M = D
+  @SP  // SP++
+  M = M + 1
+
+  // push constant 0
+  @0  // D = 0
+  D = A
+  @SP  // RAM[SP] = D
+  A = M
+  M = D
+  @SP  // SP++
+  M = M + 1
+
+  // push constant 0
+  @0  // D = 0
+  D = A
+  @SP  // RAM[SP] = D
+  A = M
+  M = D
+  @SP  // SP++
+  M = M + 1
+
+  // pop local 0
+  @LCL  // addr <- LCL + 0
+  D = M
+  @0
+  D = D + A
+  @R15
+  M = D
+  @SP  // SP--
+  M = M - 1
+  A = M  // RAM[addr] <- RAM[SP]
+  D = M
+  @R15
+  A = M
+  M = D
+
+  // push constant 1
+  @1  // D = 1
+  D = A
+  @SP  // RAM[SP] = D
+  A = M
+  M = D
+  @SP  // SP++
+  M = M + 1
+
+  // pop local 1
+  @LCL  // addr <- LCL + 1
+  D = M
+  @1
+  D = D + A
+  @R15
+  M = D
+  @SP  // SP--
+  M = M - 1
+  A = M  // RAM[addr] <- RAM[SP]
+  D = M
+  @R15
+  A = M
+  M = D
+
+  // push constant 9
+  @9  // D = 9
+  D = A
+  @SP  // RAM[SP] = D
+  A = M
+  M = D
+  @SP  // SP++
+  M = M + 1
+
+  // pop local 2
+  @LCL  // addr <- LCL + 2
+  D = M
+  @2
+  D = D + A
+  @R15
+  M = D
+  @SP  // SP--
+  M = M - 1
+  A = M  // RAM[addr] <- RAM[SP]
+  D = M
+  @R15
+  A = M
+  M = D
+
+  // push constant 2
+  @2  // D = 2
+  D = A
+  @SP  // RAM[SP] = D
+  A = M
+  M = D
+  @SP  // SP++
+  M = M + 1
+
+  // pop local 3
+  @LCL  // addr <- LCL + 3
+  D = M
+  @3
+  D = D + A
+  @R15
+  M = D
+  @SP  // SP--
+  M = M - 1
+  A = M  // RAM[addr] <- RAM[SP]
+  D = M
+  @R15
+  A = M
+  M = D
+
+ // label START
+(START)
+
+  // push local 3
+  @LCL  // addr <- LCL + 3
+  D = M
+  @3
+  A = D + A
+  D = M
+  @SP  // SP++
+  M = M + 1
+  A = M  // RAM[addr] <- RAM[SP - 1]
+  A = A - 1
+  M = D
+
+  // push local 2
+  @LCL  // addr <- LCL + 2
+  D = M
+  @2
+  A = D + A
+  D = M
+  @SP  // SP++
+  M = M + 1
+  A = M  // RAM[addr] <- RAM[SP - 1]
+  A = A - 1
+  M = D
+
+ // eq
+  @SP  // Load values
+  AM = M - 1
+  D = M
+  A = A - 1
+  D = D - M
+  @ALU_COMPARE_1_ELSE  // Store in D
+  D;JNE
+  D = 1
+  @ALU_COMPARE_1_FINISH
+  0; JMP
+(ALU_COMPARE_1_ELSE)
+  D = 0
+(ALU_COMPARE_1_FINISH)
+  @SP // Store in memory
+  A = M - 1
+  M = D
+
+ // if-goto END
+  @SP
+  AM = M - 1
+  D = M
+  @END
+  D; JNE
+
+  // push local 0
+  @LCL  // addr <- LCL + 0
+  D = M
+  @0
+  A = D + A
+  D = M
+  @SP  // SP++
+  M = M + 1
+  A = M  // RAM[addr] <- RAM[SP - 1]
+  A = A - 1
+  M = D
+
+  // push local 1
+  @LCL  // addr <- LCL + 1
+  D = M
+  @1
+  A = D + A
+  D = M
+  @SP  // SP++
+  M = M + 1
+  A = M  // RAM[addr] <- RAM[SP - 1]
+  A = A - 1
+  M = D
 
  // add
   @SP
@@ -99,6 +289,129 @@
   D = M
   A = A - 1
   M = D + M
+
+  // pop local 1
+  @LCL  // addr <- LCL + 1
+  D = M
+  @1
+  D = D + A
+  @R15
+  M = D
+  @SP  // SP--
+  M = M - 1
+  A = M  // RAM[addr] <- RAM[SP]
+  D = M
+  @R15
+  A = M
+  M = D
+
+  // push local 1
+  @LCL  // addr <- LCL + 1
+  D = M
+  @1
+  A = D + A
+  D = M
+  @SP  // SP++
+  M = M + 1
+  A = M  // RAM[addr] <- RAM[SP - 1]
+  A = A - 1
+  M = D
+
+  // push local 0
+  @LCL  // addr <- LCL + 0
+  D = M
+  @0
+  A = D + A
+  D = M
+  @SP  // SP++
+  M = M + 1
+  A = M  // RAM[addr] <- RAM[SP - 1]
+  A = A - 1
+  M = D
+
+ // sub
+  @SP
+  AM = M - 1
+  D = M
+  A = A - 1
+  M = M - D
+
+  // pop local 0
+  @LCL  // addr <- LCL + 0
+  D = M
+  @0
+  D = D + A
+  @R15
+  M = D
+  @SP  // SP--
+  M = M - 1
+  A = M  // RAM[addr] <- RAM[SP]
+  D = M
+  @R15
+  A = M
+  M = D
+
+  // push constant 1
+  @1  // D = 1
+  D = A
+  @SP  // RAM[SP] = D
+  A = M
+  M = D
+  @SP  // SP++
+  M = M + 1
+
+  // push local 3
+  @LCL  // addr <- LCL + 3
+  D = M
+  @3
+  A = D + A
+  D = M
+  @SP  // SP++
+  M = M + 1
+  A = M  // RAM[addr] <- RAM[SP - 1]
+  A = A - 1
+  M = D
+
+ // add
+  @SP
+  AM = M - 1
+  D = M
+  A = A - 1
+  M = D + M
+
+  // pop local 3
+  @LCL  // addr <- LCL + 3
+  D = M
+  @3
+  D = D + A
+  @R15
+  M = D
+  @SP  // SP--
+  M = M - 1
+  A = M  // RAM[addr] <- RAM[SP]
+  D = M
+  @R15
+  A = M
+  M = D
+
+ // goto START
+  @START
+  0; JMP
+
+ // label END
+(END)
+
+  // push local 1
+  @LCL  // addr <- LCL + 1
+  D = M
+  @1
+  A = D + A
+  D = M
+  @SP  // SP++
+  M = M + 1
+  A = M  // RAM[addr] <- RAM[SP - 1]
+  A = A - 1
+  M = D
 
   // pop static 0
   @program.0  // addr <- program.0 + 0
