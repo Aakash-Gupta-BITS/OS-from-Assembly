@@ -1,15 +1,82 @@
-@10
-D = A
-@LCL
-M = D
+  // BOOTSTRAP AREA
+  // SP = 256
+  @256
+  D = A
+  @SP
+  M = D
 
-@256
-D = A
-@SP
-M = D
+  // Call Sys.init
+  @Sys.init
+  0; JMP
 
-  // push constant 5
-  @5  // D = 5
+(Sys.init)
+  // LCL = ARG = SP
+  @SP
+  D = A
+  @LCL
+  M = D
+
+  // USER CODE
+
+  // call Main.main 0
+
+  // push constant 0
+  @0  // D = 0
+  D = A
+  @SP  // RAM[SP] = D
+  A = M
+  M = D
+  @SP  // SP++
+  M = M + 1
+  @FUNC_CALL_Main.main_1_RET  // push FUNC_CALL_Main.main_1_RET
+  D = A
+  @SP
+  AM = M + 1
+  A = A - 1
+  M = D
+  @LCL  // push LCL
+  D = M
+  @SP
+  AM = M + 1
+  A = A - 1
+  M = D
+  @ARG  // push ARG
+  D = M
+  @SP
+  AM = M + 1
+  A = A - 1
+  M = D
+  @THIS  // push THIS
+  D = M
+  @SP
+  AM = M + 1
+  A = A - 1
+  M = D
+  @THAT  // push THAT
+  D = M
+  @SP
+  AM = M + 1
+  A = A - 1
+  M = D
+  @SP  // LCL = SP
+  D = M
+  @LCL
+  M = D
+  @6  // ARG = SP - 5 - nArgs
+  D = D - A
+  @ARG
+  M = D
+  @Main.main // JUMP to function
+  0; JMP
+(FUNC_CALL_Main.main_1_RET)
+  A = -1
+  0; JMP
+
+  // function Main.main 0
+(Main.main)
+
+  // push constant 10
+  @10  // D = 10
   D = A
   @SP  // RAM[SP] = D
   A = M
@@ -17,9 +84,25 @@ M = D
   @SP  // SP++
   M = M + 1
 
-  // pop local 0
-  @LCL  // addr <- LCL + 0
+  // push constant 30
+  @30  // D = 30
+  D = A
+  @SP  // RAM[SP] = D
+  A = M
+  M = D
+  @SP  // SP++
+  M = M + 1
+
+ // add
+  @SP
+  AM = M - 1
   D = M
+  A = A - 1
+  M = D + M
+
+  // pop static 0
+  @program.0  // addr <- program.0 + 0
+  D = A
   @0
   D = D + A
   @R15
@@ -32,149 +115,43 @@ M = D
   A = M
   M = D
 
- // label START
-(START)
-
-  // push local 1
-  @LCL  // addr <- LCL + 1
-  D = M
-  @1
-  A = D + A
-  D = M
-  @SP  // SP++
-  M = M + 1
-  A = M  // RAM[addr] <- RAM[SP - 1]
-  A = A - 1
-  M = D
-
-  // push constant 5
-  @5  // D = 5
-  D = A
-  @SP  // RAM[SP] = D
-  A = M
-  M = D
-  @SP  // SP++
-  M = M + 1
-
- // gt
-  @SP  // Load values
-  AM = M - 1
-  D = M
-  A = A - 1
-  D = D - M
-  @ALU_COMPARE_1_ELSE  // Store in D
-  D;JGE
-  D = 1
-  @ALU_COMPARE_1_FINISH
-  0; JMP
-(ALU_COMPARE_1_ELSE)
-  D = 0
-(ALU_COMPARE_1_FINISH)
-  @SP // Store in memory
+  // return
+  @SP  // MEM[ARG] <- MEM[SP - 1]
   A = M - 1
-  M = D
-
- // if-goto END
-  @SP
-  AM = M - 1
   D = M
-  @END
-  D; JNE
-
-  // push local 1
-  @LCL  // addr <- LCL + 1
-  D = M
-  @1
-  A = D + A
-  D = M
-  @SP  // SP++
-  M = M + 1
-  A = M  // RAM[addr] <- RAM[SP - 1]
-  A = A - 1
-  M = D
-
-  // push local 2
-  @LCL  // addr <- LCL + 2
-  D = M
-  @2
-  A = D + A
-  D = M
-  @SP  // SP++
-  M = M + 1
-  A = M  // RAM[addr] <- RAM[SP - 1]
-  A = A - 1
-  M = D
-
- // add
-  @SP
-  AM = M - 1
-  D = M
-  A = A - 1
-  M = D + M
-
-  // pop local 2
-  @LCL  // addr <- LCL + 2
-  D = M
-  @2
-  D = D + A
-  @R15
-  M = D
-  @SP  // SP--
-  M = M - 1
-  A = M  // RAM[addr] <- RAM[SP]
-  D = M
-  @R15
+  @ARG
   A = M
   M = D
-
-  // push local 1
-  @LCL  // addr <- LCL + 1
-  D = M
-  @1
-  A = D + A
-  D = M
-  @SP  // SP++
-  M = M + 1
-  A = M  // RAM[addr] <- RAM[SP - 1]
-  A = A - 1
-  M = D
-
-  // push constant 1
-  @1  // D = 1
-  D = A
-  @SP  // RAM[SP] = D
-  A = M
-  M = D
-  @SP  // SP++
-  M = M + 1
-
- // add
+  D = A + 1  // SP = ARG + 1
   @SP
+  M = D
+  @LCL  // R15 <- return address
+  D = M
+  @5
+  A = D - A
+  D = M
+  @R15
+  M = D
+  @LCL  // pop THAT using LCL
   AM = M - 1
   D = M
-  A = A - 1
-  M = D + M
-
-  // pop local 1
-  @LCL  // addr <- LCL + 1
-  D = M
-  @1
-  D = D + A
-  @R15
+  @THAT
   M = D
-  @SP  // SP--
-  M = M - 1
-  A = M  // RAM[addr] <- RAM[SP]
+  @LCL  // pop THIS using LCL
+  AM = M - 1
   D = M
-  @R15
+  @THIS
+  M = D
+  @LCL  // pop ARG using LCL
+  AM = M - 1
+  D = M
+  @ARG
+  M = D
+  @LCL  // pop LCL using LCL
+  AM = M - 1
+  D = M
+  @LCL
+  M = D
+  @R15  // jump to return address
   A = M
-  M = D
-
- // goto START
-  @START
-  0; JMP
-
- // label END
-(END)
-A=-1
-0;JMP
+  0;JMP

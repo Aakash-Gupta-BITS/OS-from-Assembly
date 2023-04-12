@@ -1,30 +1,6 @@
-function main 1
-push constant 5
-pop local 0
-
-label START
-push local 1
-push constant 5
-gt
-if-goto END
-
-push local 1
-push local 2
-add
-pop local 2
-
-push local 1
-push constant 1
-add
-pop local 1
-
-goto START
-
-label END
-
-function xyz 456
-call main 1
-label ALU_COMPAR_4
-goto START
-return
 function Main.main 0
+    push constant 10
+    push constant 30
+    add
+    pop static 0
+return

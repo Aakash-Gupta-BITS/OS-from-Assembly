@@ -117,7 +117,7 @@ void onTokenFromDFA(Token*& token, Buffer& buffer)
 			token->type = dfa.lookupTable.at(token->lexeme);
 	}
 
-	if (token->type == TokenType::TK_SYMBOL && token->length > 30)
+	if (token->type == TokenType::TK_SYMBOL && token->length > 50)
 		token->type = TokenType::TK_ERROR_LENGTH;
 
 	if (token->type == TokenType::TK_NUM)

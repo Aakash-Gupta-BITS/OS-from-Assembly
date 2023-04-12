@@ -4,6 +4,7 @@
 #include <set>
 #include <string>
 #include <map>
+#include <utility>
 #include <vector>
 
 extern char* LexerLoc;
@@ -56,6 +57,11 @@ struct Token
 	int length = 0;
 
 	friend std::ostream& operator<<(std::ostream&, const Token&);
+
+    Token(TokenType type = TokenType::UNINITIALISED, std::string lex = "") : type{type}, lexeme{std::move(lex)}
+    {
+
+    }
 };
 
 struct DFA

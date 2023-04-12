@@ -278,7 +278,7 @@ Parser::Parser(Buffer& buffer)
 
     if (token->type == TokenType::TK_ERROR_SYMBOL || token->type == TokenType::TK_ERROR_PATTERN || token->type == TokenType::TK_ERROR_LENGTH)
     {
-        cerr << token << endl;
+        cerr << *token << endl;
         exit(-1);
     }
 
@@ -291,6 +291,12 @@ Parser::Parser(Buffer& buffer)
     while (token->type != TokenType::TK_EOF)
     {
         token = getNextToken(buffer);
+
+        if (token->type == TokenType::TK_ERROR_SYMBOL || token->type == TokenType::TK_ERROR_PATTERN || token->type == TokenType::TK_ERROR_LENGTH)
+        {
+            cerr << *token << endl;
+            exit(-1);
+        }
         int delta = token->line_number - tokens.back().back()->line_number;
         while (delta--)
             tokens.push_back({});
