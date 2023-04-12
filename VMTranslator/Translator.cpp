@@ -70,7 +70,6 @@ int main(int argc, char** argv)
     printAST(cerr,astNode);
     cerr << endl;
 
-    return 0;
     // Type Checking
     cerr << "TYPE CHECKING PHASE" << endl;
     auto lst = getErrorList(astNode);
@@ -81,7 +80,7 @@ int main(int argc, char** argv)
 
     if (!lst.empty())
         exit(-1);
-
+    return 0;
     // Assembly Generation
     ofstream output_file{ argv[4] };
 

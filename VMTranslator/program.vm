@@ -22,7 +22,9 @@ goto START
 
 label END
 
-function main2 456
-call main 5
+function xyz 456
+call main 1
+label ALU_COMPAR_4
+goto START
 return
-function main 4
+function Main.main 0
