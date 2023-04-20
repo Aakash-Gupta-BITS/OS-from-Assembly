@@ -72,7 +72,7 @@ void check_branch_commands(ASTNode* func, vector<pair<int, string>>& errors)
     // Done - JUMP Label should not start with ["ALU_COMPARE_", "FUNCTION_CALL_"]
     // Done - Two pass required
     set<string> label_names;
-    vector<string> reserved_prefixes {"ALU_COMPARE_", "FUNCTION_CALL_"};
+    vector<string> reserved_prefixes {"ALU_COMPARE_", "FUNC_CALL_"};
     for (auto line = func->children[2]; line; line = line->sibling)
     {
         if (line->token->type != TokenType::TK_LABEL)

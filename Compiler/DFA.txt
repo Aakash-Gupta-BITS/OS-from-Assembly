@@ -1,0 +1,128 @@
+49 30 27 25 21
+TK_COMMENT
+TK_CLASS
+TK_CONSTRUCTOR
+TK_FUNCTION
+TK_METHOD
+TK_FIELD
+TK_STATIC
+TK_VAR
+TK_INT
+TK_CHAR
+TK_BOOLEAN
+TK_VOID
+TK_TRUE
+TK_FALSE
+TK_NULL
+TK_THIS
+TK_LET
+TK_DO
+TK_IF
+TK_ELSE
+TK_WHILE
+TK_RETURN
+TK_CURO
+TK_CURC
+TK_PARENO
+TK_PARENC
+TK_BRACKO
+TK_BRACKC
+TK_DOT
+TK_COMMA
+TK_SEMICOLON
+TK_PLUS
+TK_MINUS
+TK_MULT
+TK_DIV
+TK_AND
+TK_OR
+TK_LE
+TK_GE
+TK_EQ
+TK_NOT
+TK_NUM
+TK_STR
+TK_IDENTIFIER
+TK_WHITESPACE
+TK_EOF
+TK_ERROR_SYMBOL
+TK_ERROR_PATTERN
+TK_ERROR_LENGTH
+0 1 {
+0 2 }
+0 3 (
+0 4 )
+0 5 [
+0 6 ]
+0 7 .
+0 8 ,
+0 9 ;
+0 10 +
+0 11 -
+0 12 *
+0 13 /
+13 25 /
+13 27 *
+0 14 &
+0 15 |
+0 16 <
+0 17 >
+0 18 =
+0 19 ~
+0 20 0123456789
+20 20 0123456789
+0 21 "
+21 22 "
+0 23 qwertyuiopasdfghjklzxcvbnmQWERTYUIOPLKJHGFDSAZXCVBNM_
+23 23 qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_1234567890
+1 TK_CURO
+2 TK_CURC
+3 TK_PARENO
+4 TK_PARENC
+5 TK_BRACKO
+6 TK_BRACKC
+7 TK_DOT
+8 TK_COMMA
+9 TK_SEMICOLON
+10 TK_PLUS
+11 TK_MINUS
+12 TK_MULT
+13 TK_DIV
+14 TK_AND
+15 TK_OR
+16 TK_LE
+17 TK_GE
+18 TK_EQ
+19 TK_NOT
+20 TK_NUM
+22 TK_STR
+23 TK_IDENTIFIER
+24 TK_WHITESPACE
+26 TK_COMMENT
+29 TK_COMMENT
+class TK_CLASS
+constructor TK_CONSTRUCTOR
+function TK_FUNCTION
+method TK_METHOD
+field TK_FIELD
+static TK_STATIC
+var TK_VAR
+int TK_INT
+char TK_CHAR
+boolean TK_BOOLEAN
+void TK_VOID
+true TK_TRUE
+false TK_FALSE
+null TK_NULL
+this TK_THIS
+let TK_LET
+do TK_DO
+if TK_IF
+else TK_ELSE
+while TK_WHILE
+return TK_RETURN
+num_tokens num_states num_transitions num_finalstates num_keywords
+'num_tokens' lines, each having one string representing the token
+'num_transitions' lines, each having 3 entries: start state, end state and char stream
+'num_finalstates' lines, each having 2 entries: state number and state TOKEN
+'num_keywords' lines, each having 2 entries: keyword and corresponding TOKEN

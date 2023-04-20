@@ -204,8 +204,8 @@ void Parser::computeParseTable()
             cerr << "Symbol " << parser.symbolType2symbolStr[productions[i][0]] << " on " << parser.symbolType2symbolStr[j] << " will give ";
 
             cerr << parser.symbolType2symbolStr[productions[i][0]] << " ---> ";
-            for (int j = 1; j < productions[i].size(); ++j)
-                cerr << parser.symbolType2symbolStr[productions[i][j]] << " ";
+            for (int k = 1; k < productions[i].size(); ++k)
+                cerr << parser.symbolType2symbolStr[productions[i][k]] << " ";
             cerr << endl;
 
             auto &target = parseTable[productions[i][0]][j];

@@ -1,41 +1,9 @@
+function sum 0
+    push constant 5
+
+
 function Main.main 0
-    push constant 0
-    push constant 0
-    push constant 0
-    push constant 0
-    push constant 0
-    pop local 0
-    push constant 1
-    pop local 1
-    push constant 9
-    pop local 2
-    push constant 2
-    pop local 3
-
-label START
-    push local 3
-    push local 2
-    eq
-    if-goto END
-
-    push local 0
-    push local 1
-    add
-    pop local 1
-
-    push local 1
-    push local 0
-    sub
-    pop local 0
-
-    push constant 1
-    push local 3
-    add
-    pop local 3
-    goto START
-
-label END
-    push local 1
+    push constant 10
+    call sum 1
     pop static 0
-
 return

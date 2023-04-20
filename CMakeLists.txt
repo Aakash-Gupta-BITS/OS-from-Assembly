@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.1)
 project(VMTranslator)
 
-add_executable(VMTranslator.out "VMTranslator/Translator.cpp" "VMTranslator/AST.cpp" "VMTranslator/Lexer.cpp" "VMTranslator/Parser.cpp" VMTranslator/SemanticAnalysis.cpp VMTranslator/SemanticAnalysis.h VMTranslator/Assembler.cpp VMTranslator/Assembler.h)
+add_executable(Compiler.out Compiler/Compiler.cpp Compiler/Lexer.cpp Compiler/Parser.cpp)
+add_executable(VMTranslator.out "VMTranslator/Translator.cpp" "VMTranslator/AST.cpp" "VMTranslator/Lexer.cpp" "VMTranslator/Parser.cpp" VMTranslator/SemanticAnalysis.cpp VMTranslator/Assembler.cpp)
 add_executable(Assembler.out "Assembler/Assembler.cpp" "Assembler/Lexer.cpp" "Assembler/Parser.cpp")
 add_executable(CPU.out "Binary Simulator/CPU.cpp")
+target_compile_features(Compiler.out PRIVATE cxx_std_20)
 target_compile_features(VMTranslator.out PRIVATE cxx_std_20)
 target_compile_features(Assembler.out PRIVATE cxx_std_20)
 target_compile_features(CPU.out PRIVATE cxx_std_20)

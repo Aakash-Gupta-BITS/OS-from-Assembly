@@ -1,0 +1,22 @@
+class Square {
+field int x, y; // location on the screen
+field int size; // The size of the square
+
+// Increments the square size by 2.
+method void incSize() {
+if (((y + size) < 254) & ((x + size) < 510)) {
+do erase();
+let size = size + 2;
+do draw();
+}
+return;
+}
+// Moves the square up by 2 pixels.
+method void moveUp() {
+if (y > 1) {
+do Screen.setColor(false);
+do Screen.drawRectangle(x, (y + size) - 1, x + size, y + size);
+let y = y - 2;
+}
+}
+}
