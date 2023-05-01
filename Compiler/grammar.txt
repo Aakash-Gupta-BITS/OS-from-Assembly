@@ -135,9 +135,9 @@ term TK_NULL
 term TK_THIS
 term TK_IDENTIFIER term_sub_iden
 term_sub_iden eps
-term_sub_iden TK_BRACKO expression_list TK_BRACKC
+term_sub_iden TK_PARENO expression_list TK_PARENC
 term_sub_iden TK_DOT TK_IDENTIFIER TK_PARENO expression_list TK_PARENC
-term TK_BRACKO TK_IDENTIFIER TK_BRACKC
+term_sub_iden TK_BRACKO expression TK_BRACKC
 term TK_PARENO expression TK_PARENC
 term TK_MINUS term
 term TK_NOT term
