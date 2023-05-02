@@ -132,4 +132,5 @@ If everything is fine, then the `stderr` will contain parser table construction,
 3. `pop` is not allowed with `constant`.
 
 #### Not Handled Yet
-1. `pointer` datatype in assembly generation.
+- `pointer` datatype in assembly generation.
+- Multiple files as input.
