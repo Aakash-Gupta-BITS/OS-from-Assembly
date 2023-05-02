@@ -81,7 +81,7 @@ This is second project. It converts a valid assembly program to corresponding bi
 ### I/O Redirections
 `stdout` and `stdin` have no use. Debug output is automatically redirected to `stderr`.
 In case of any error, appropriate error message will be printed and is followed by a call to `exit(-1);`.
-If everything is correct, then the debug output contains memory locations and jump locations of new symbols defined by the user.
+If everything is correct, then the `stderr` will contain memory locations and jump locations of new symbols defined by the user.
 
 ### File Format
 1. `DFA.txt` file should be changed with care!.
@@ -91,3 +91,45 @@ If everything is correct, then the debug output contains memory locations and ju
    A=-1
    0;JMP
    ```
+
+## Virtual Machine Translator
+This is the third project. It converts a valid bytecode generated from compiler to corresponding assembly output.
+
+### Running
+1. Compilation has to be done via the following command:
+   ```{bash}
+   g++ -o translator.out *.cpp --std=c++17
+   ```
+2. To convert the given bytecode to assembly, use the following:
+   ```{bash}
+   ./translator.out <DFA file> <Grammar file> <input_vm_file_location> <output_assembly_location>
+   ```
+
+### I/O Redirections
+`stdout` and `stdin` have no use. Debug output is automatically redirected to `stderr`.
+In case of any error, appropriate error message will be printed and is followed by a call to `exit(-1);`.
+If everything is fine, then the `stderr` will contain parser table construction, parsing steps, parse tree output, Abstract Syntax Tree, Type check errors and a success message for assembly dump.
+
+### File Format
+#### File level checks
+1. There should be Main.main.
+2. Main.main accepts 0 arguments.
+3. There should not be any function named Sys.init.
+4. Function names should not be repeated.
+5. Calls must match existing function names.
+6. Calls must match exact number of arguments in the definition.
+7. Forward function calls are allowed.
+
+#### Per function checks
+1. Check if label names are not repeated inside a local function.
+2. Check if calls to jump are made to existing labels.
+3. JUMP labels should not start with ["ALU_COMPARE_", "FUNCTION_CALL_"].
+4. Two pass required.
+
+#### Stack checks
+1. Only `0` and `1` are allowed with `pointer`.
+2. Only integers allowed with `temp` are `0-7`.
+3. `pop` is not allowed with `constant`.
+
+#### Not Handled Yet
+1. `pointer` datatype in assembly generation.
