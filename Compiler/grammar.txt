@@ -98,9 +98,9 @@ subroutine_prefix TK_FUNCTION
 subroutine_prefix TK_METHOD
 subroutine_type type
 subroutine_type TK_VOID
-parameters TK_IDENTIFIER more_parameters
+parameters type TK_IDENTIFIER more_parameters
 parameters eps
-more_parameters TK_COMMA TK_IDENTIFIER more_parameters
+more_parameters TK_COMMA type TK_IDENTIFIER more_parameters
 more_parameters eps
 subroutine_body TK_CURO routine_vars statements TK_CURC
 routine_vars routine_var routine_vars

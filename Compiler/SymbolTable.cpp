@@ -1,20 +1,11 @@
-#include "AST.h"
+#include "SymbolTable.h"
 #include <iostream>
 #include <cassert>
+#include <set>
+#include <algorithm>
 using namespace std;
 
-std::ostream& operator<<(std::ostream& out, const ASTNode& node)
-{
-    out <<
-        "{ symbol: '" <<
-        parser.symbolType2symbolStr[node.sym_index] <<
-        "', lexeme: '" <<
-        (node.token ? node.token->lexeme : "") <<
-        "'";
-
-    out << " }";
-    return out;
-}
+GlobalTable* GlobalTable::singleton_ = nullptr;
 
 Token* copy_token(Token* input)
 {
@@ -30,7 +21,7 @@ Token* copy_token(Token* input)
     return out;
 }
 
-ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTNode* inherited)
+ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent = nullptr, ASTNode* inherited = nullptr)
 {
     assert(input != nullptr);
 
@@ -48,12 +39,14 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
     if (input->productionNumber == 0)
     {
         // class ==> TK_CLASS TK_IDENTIFIER TK_CURO class_vars subroutineDecs TK_CURC TK_EOF
-        node->token = copy_token(input->children[0]->token);
         node->children = {
-            createAST(input->children[1]),
-            createAST(input->children[3]),
-            createAST(input->children[4]),
+                createAST(input->children[1]),
+                createAST(input->children[3]),
+                createAST(input->children[4]),
         };
+        auto class_entry = new ClassLevelTable(node);
+        GlobalTable::getInstance()->classes.push_back(class_entry);
+        return nullptr;
     }
     else if (input->productionNumber == 1)
     {
@@ -87,9 +80,9 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
     {
         // class_var ==> class_var_prefix type TK_IDENTIFIER more_identifiers TK_SEMICOLON
         node->children = {
-            createAST(input->children[0]),
-            createAST(input->children[1]),
-            createAST(input->children[2])
+                createAST(input->children[0]),
+                createAST(input->children[1]),
+                createAST(input->children[2])
         };
         node->children[2]->sibling = createAST(input->children[3]);
     }
@@ -122,10 +115,10 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
         // subroutineDec ==> subroutine_prefix subroutine_type TK_IDENTIFIER TK_PARENO parameters TK_PARENC subroutine_body
         node->token = copy_token(input->children[2]->token);
         node->children = {
-            createAST(input->children[0]),
-            createAST(input->children[1]),
-            createAST(input->children[4]),
-            createAST(input->children[6])
+                createAST(input->children[0]),
+                createAST(input->children[1]),
+                createAST(input->children[4]),
+                createAST(input->children[6])
         };
     }
     else if (input->productionNumber >= 15 && input->productionNumber <= 19)
@@ -140,9 +133,12 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
     }
     else if (input->productionNumber == 20)
     {
-        // parameters ==> TK_IDENTIFIER more_parameters
-        node->token = copy_token(input->children[0]->token);
-        node->sibling = createAST(input->children[1]);
+        // parameters ==> type TK_IDENTIFIER more_parameters
+        node->token = copy_token(input->children[1]->token);
+        node->children = {
+            createAST(input->children[0])
+        };
+        node->sibling = createAST(input->children[2]);
     }
     else if (input->productionNumber == 21)
     {
@@ -152,9 +148,12 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
     }
     else if (input->productionNumber == 22)
     {
-        // more_parameters ==> TK_COMMA TK_IDENTIFIER more_parameters
-        node->token = copy_token(input->children[1]->token);
-        node->sibling = createAST(input->children[2]);
+        // more_parameters ==> TK_COMMA type TK_IDENTIFIER more_parameters
+        node->token = copy_token(input->children[2]->token);
+        node->children = {
+            createAST(input->children[1])
+        };
+        node->sibling = createAST(input->children[3]);
     }
     else if (input->productionNumber == 23)
     {
@@ -166,8 +165,8 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
     {
         // subroutine_body ==> TK_CURO routine_vars statements TK_CURC
         node->children = {
-            createAST(input->children[1]),
-            createAST(input->children[2]),
+                createAST(input->children[1]),
+                createAST(input->children[2]),
         };
     }
     else if (input->productionNumber == 25)
@@ -188,8 +187,8 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
         // routine_var ==> TK_VAR type TK_IDENTIFIER more_identifiers TK_SEMICOLON
         node->token = copy_token(input->children[0]->token);
         node->children = {
-            createAST(input->children[1]),
-            createAST(input->children[2])
+                createAST(input->children[1]),
+                createAST(input->children[2])
         };
         node->children[1]->sibling = createAST(input->children[3]);
     }
@@ -221,9 +220,9 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
         // let_statement ==> TK_LET TK_IDENTIFIER identifier_suffix TK_EQ expression TK_SEMICOLON
         node->token = copy_token(input->children[0]->token);
         node->children = {
-            createAST(input->children[1]),
-            createAST(input->children[2]),
-            createAST(input->children[4])
+                createAST(input->children[1]),
+                createAST(input->children[2]),
+                createAST(input->children[4])
         };
     }
     else if (input->productionNumber == 36)
@@ -243,9 +242,9 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
         // if_statement TK_IF TK_PARENO expression TK_PARENC TK_CURO statements TK_CURC else_statement
         node->token = copy_token(input->children[0]->token);
         node->children = {
-            createAST(input->children[2]),
-            createAST(input->children[5]),
-            createAST(input->children[7])
+                createAST(input->children[2]),
+                createAST(input->children[5]),
+                createAST(input->children[7])
         };
     }
     else if (input->productionNumber == 39)
@@ -265,8 +264,8 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
         // while_statement ==> TK_WHILE TK_PARENO expression TK_PARENC TK_CURO statements TK_CURC
         node->token = copy_token(input->children[0]->token);
         node->children = {
-            createAST(input->children[2]),
-            createAST(input->children[5])
+                createAST(input->children[2]),
+                createAST(input->children[5])
         };
     }
     else if (input->productionNumber == 42)
@@ -357,8 +356,8 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
         // term_sub_iden ==> TK_PARENO expression_list TK_PARENC
         node->token = copy_token(input->children[0]->token);
         node->children = {
-            inherited,
-            createAST(input->children[1])
+                inherited,
+                createAST(input->children[1])
         };
     }
     else if (input->productionNumber == 58)
@@ -368,13 +367,13 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
 
         auto caller = createAST(input->children[0]);
         caller->children = {
-            inherited,
-            createAST(input->children[1])
+                inherited,
+                createAST(input->children[1])
         };
 
         node->children = {
-            caller,
-            createAST(input->children[3])
+                caller,
+                createAST(input->children[3])
         };
     }
     else if (input->productionNumber == 59)
@@ -382,8 +381,8 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
         // term_sub_iden ==> TK_BRACKO expression TK_BRACKC
         node->token = copy_token(input->children[0]->token);
         node->children = {
-            inherited,
-            createAST(input->children[1])
+                inherited,
+                createAST(input->children[1])
         };
     }
     else if (input->productionNumber == 60)
@@ -397,7 +396,7 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
         // term ==> TK_MINUS term
         node->token = copy_token(input->children[0]->token);
         node->children = {
-            createAST(input->children[1])
+                createAST(input->children[1])
         };
     }
     else if (input->productionNumber == 62)
@@ -427,8 +426,8 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
         // subroutine_call ==> TK_IDENTIFIER subroutine_scope TK_PARENO expression_list TK_PARENC
         node->token = copy_token(input->children[2]->token);
         node->children = {
-            createAST(input->children[1], nullptr, createAST(input->children[0])),
-            createAST(input->children[3])
+                createAST(input->children[1], nullptr, createAST(input->children[0])),
+                createAST(input->children[3])
         };
     }
     else if (input->productionNumber == 73)
@@ -436,8 +435,8 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
         // subroutine_scope ==> TK_DOT TK_IDENTIFIER
         node->token = copy_token(input->children[0]->token);
         node->children = {
-            inherited,
-            createAST(input->children[1])
+                inherited,
+                createAST(input->children[1])
         };
     }
     else if (input->productionNumber == 74)
@@ -480,4 +479,149 @@ ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTN
     }
 
     return node;
+}
+
+std::ostream& operator<<(std::ostream& out, const ASTNode& node)
+{
+    out <<
+        "{ symbol: '" <<
+        parser.symbolType2symbolStr[node.sym_index] <<
+        "', lexeme: '" <<
+        (node.token ? node.token->lexeme : "") <<
+        "'";
+
+    out << " }";
+    return out;
+}
+
+VariableType extract_type(TokenType token_type)
+{
+    switch (token_type) {
+        case TokenType::TK_VOID:
+            return VariableType::VOID;
+
+        case TokenType::TK_INT:
+            return VariableType::INTEGER;
+
+        case TokenType::TK_CHAR:
+            return VariableType::CHAR;
+
+        case TokenType::TK_BOOLEAN:
+            return VariableType::BOOLEAN;
+
+        case TokenType::TK_IDENTIFIER:
+            return VariableType::USER;
+
+        default: break;
+    }
+
+    cerr << "This should never occur! Check parsing rules!" << endl;
+    assert(false);
+}
+
+FunctionEntry::FunctionEntry(ASTNode *node)
+{
+    switch (node->children[0]->token->type) {
+        case TokenType::TK_METHOD:
+            category = MethodCategory::METHOD;
+            break;
+
+        case TokenType::TK_FUNCTION:
+            category = MethodCategory::FUNCTION;
+            break;
+
+        case TokenType::TK_CONSTRUCTOR:
+            category = MethodCategory::CONSTRUCTOR;
+            break;
+
+        default:
+            cerr << "This should never occur! Parsing rules are wrong!!";
+            assert(false);
+    }
+    delete node->children[0];
+
+    function_name = node->token->lexeme;
+    delete node->token;
+
+    return_type = extract_type(node->children[1]->token->type);
+    delete node->children[1];
+    return_type_entry = nullptr;
+
+    int variable_index = 0;
+    for (auto param = node->children[2]; param; param = param->sibling)
+    {
+        auto var = new VariableEntry();
+        var->var_name = param->token->lexeme;
+        var->var_type = extract_type(param->children[0]->token->type);
+        var->var_category = VariableCategory::ARGUMENT;
+        var->index = variable_index++;
+        var->type_entry = nullptr;
+        parameters.push_back(var);
+    }
+    delete node->children[2];
+
+    for (auto local = node->children[3]->children[0]; local; local = local->sibling)
+    {
+        auto var_type = extract_type(local->children[0]->token->type);
+        for (auto var_name = local->children[1]; var_name; var_name = var_name->sibling)
+        {
+            auto var = new VariableEntry();
+            var->var_name = var_name->token->lexeme;
+            var->var_type = var_type;
+            var->var_category = VariableCategory::LOCAL;
+            var->index = variable_index++;
+            var->type_entry = nullptr;
+            locals.push_back(var);
+        }
+    }
+    delete node->children[3]->children[0];
+
+    body = node->children[3]->children[1];
+    node->children[3]->children[1] = nullptr;
+    node->children[3]->children.clear();
+    delete node->children[3];
+}
+
+ClassLevelTable::ClassLevelTable(ASTNode * node)
+{
+    assert(node != nullptr);
+
+    this->class_name = node->children[0]->token->lexeme;
+    delete node->children[0];
+
+    int var_index = 0;
+    for (auto var = node->children[1]; var; var = var->sibling)
+    {
+        auto var_type = extract_type(var->children[1]->token->type);
+
+        auto var_category = (
+                var->children[0]->token->type == TokenType::TK_STATIC ? VariableCategory::STATIC :
+                var->children[0]->token->type == TokenType::TK_FIELD ? VariableCategory::FIELD :
+                VariableCategory::UNINITIALISED);
+
+        if (var_category == VariableCategory::UNINITIALISED)
+        {
+            cerr << "This should never happen! Check the parsing table!" << endl;
+            assert(false);
+        }
+
+        for (auto var_name_entry = var->children[2]; var_name_entry; var_name_entry = var_name_entry->sibling)
+        {
+            auto entry = new VariableEntry();
+            entry->var_name = var_name_entry->token->lexeme;
+            entry->var_type = var_type;
+            entry->var_category = var_category;
+            entry->index = var_index++;
+            entry->type_entry = nullptr;
+            variables.push_back(entry);
+        }
+    }
+
+    for (auto var = node->children[2]; var; var = var->sibling)
+        functions.push_back(new FunctionEntry(var));
+}
+
+void GlobalTable::add_class(ParseTreeNode* node)
+{
+    createAST(node);
 }

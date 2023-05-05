@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include "AST.h"
+#include "SymbolTable.h"
 
 using namespace std;
 char* LexerLoc;
@@ -11,21 +11,6 @@ void printParseTree(std::ostream& out, const ParseTreeNode* node)
     out << *node << endl;
     for (auto& x : node->children)
         printParseTree(out, x);
-}
-
-void printAST(std::ostream& out, ASTNode* node, int tab = 0)
-{
-    if (node == nullptr)
-        return;
-
-    for (int i = 0; i < tab; ++i)
-        out << '\t';
-    out << *node << endl;
-
-    for (auto& child : node->children)
-        printAST(out, child, tab + 1);
-
-    printAST(out, node->sibling, tab);
 }
 
 void cleanParseTree(ParseTreeNode* node)
@@ -57,13 +42,13 @@ int main(int argc, char** argv)
     auto parseNode = parseInputSourceCode(buffer, error);
     if (error)
     {
-        cerr << "ERROR WHILE PROCESSING INPUT FILE! EXITING!"<<endl;
+        cerr << "ERROR WHILE PROCESSING INPUT FILE! EXITING!" << endl;
         exit(-1);
     }
 
     // AST
-    auto node = createAST(parseNode);
-    printAST(cerr, node);
+    GlobalTable::getInstance()->add_class(parseNode);
+    cleanParseTree(parseNode);
 
     cerr << endl;
 }
