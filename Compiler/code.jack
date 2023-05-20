@@ -2,7 +2,7 @@ class Square
 {
     field int x, y; // location on the screen
     field int size; // The size of the square
-    static char st_field;
+    static Square st_field;
 
     // Increments the square size by 2.
     method void incSize(int a, int b) {

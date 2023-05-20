@@ -21,7 +21,7 @@ Token* copy_token(Token* input)
     return out;
 }
 
-ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent = nullptr, ASTNode* inherited = nullptr)
+ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTNode* inherited)
 {
     assert(input != nullptr);
 
@@ -543,6 +543,7 @@ FunctionEntry::FunctionEntry(ASTNode *node)
     function_name = node->token->lexeme;
     delete node->token;
 
+    return_type_name = node->children[1]->token->lexeme;
     return_type = extract_type(node->children[1]->token->type);
     delete node->children[1];
     return_type_entry = nullptr;
@@ -552,6 +553,7 @@ FunctionEntry::FunctionEntry(ASTNode *node)
     {
         auto var = new VariableEntry();
         var->var_name = param->token->lexeme;
+        var->var_type_name = param->children[0]->token->lexeme;
         var->var_type = extract_type(param->children[0]->token->type);
         var->var_category = VariableCategory::ARGUMENT;
         var->index = variable_index++;
@@ -567,6 +569,7 @@ FunctionEntry::FunctionEntry(ASTNode *node)
         {
             auto var = new VariableEntry();
             var->var_name = var_name->token->lexeme;
+            var->var_type_name = local->children[0]->token->lexeme;
             var->var_type = var_type;
             var->var_category = VariableCategory::LOCAL;
             var->index = variable_index++;
@@ -609,6 +612,7 @@ ClassLevelTable::ClassLevelTable(ASTNode * node)
         {
             auto entry = new VariableEntry();
             entry->var_name = var_name_entry->token->lexeme;
+            entry->var_type_name = var->children[1]->token->lexeme;
             entry->var_type = var_type;
             entry->var_category = var_category;
             entry->index = var_index++;
@@ -624,4 +628,154 @@ ClassLevelTable::ClassLevelTable(ASTNode * node)
 void GlobalTable::add_class(ParseTreeNode* node)
 {
     createAST(node);
+}
+
+void GlobalTable::check_names()
+{
+    assert(!check_names_called);
+    check_names_called = true;
+
+    class_type_map.clear();
+
+    for (auto &name: {"int", "char", "boolean"})
+        class_type_map[name] = nullptr;
+
+    // Requirement #1: No two classes have same name. Their being `int` or `char` is not checked as this is handled via lexer and parser.
+    for (auto &class_entry: classes)
+    {
+        if (class_type_map.find(class_entry->class_name) != class_type_map.end())
+        {
+            cerr << "Class " << class_entry->class_name << " is defined more than once!" << endl;
+            assert(false);
+        }
+        class_type_map[class_entry->class_name] = class_entry;
+    }
+
+    // Requirement #2: No two members in a class can have same name. The member names should not match existing class names.
+    for (auto &class_entry: classes)
+    {
+        set<string_view> member_names;
+
+        for (auto& var: class_entry->variables)
+        {
+            if (member_names.find(var->var_name) != member_names.end())
+            {
+                cerr << "Class " << class_entry->class_name << " has two members with same name: " << var->var_name << endl;
+                assert(false);
+            }
+            if (class_type_map.find(var->var_name) != class_type_map.end())
+            {
+                cerr << "Class " << class_entry->class_name << " has a variable with same name as a class: " << var->var_name << endl;
+                assert(false);
+            }
+            member_names.insert(var->var_name);
+        }
+        for (auto& fun: class_entry->functions)
+        {
+            if (member_names.find(fun->function_name) != member_names.end())
+            {
+                cerr << "Class " << class_entry->class_name << " has a member with same name as a function: " << fun->function_name << endl;
+                assert(false);
+            }
+            if (class_type_map.find(fun->function_name) != class_type_map.end())
+            {
+                cerr << "Class " << class_entry->class_name << " has a function with same name as a class: " << fun->function_name << endl;
+                assert(false);
+            }
+
+            member_names.insert(fun->function_name);
+        }
+
+        class_entry->member_names = std::move(member_names);
+    }
+
+    // Requirement #3: A local variable name and parameter name inside function can't be a class name, member name in existing class, same name.
+    for (auto &class_entry: classes)
+    {
+        for (auto &func_entry: class_entry->functions)
+        {
+            set<string_view> local_names;
+            vector<VariableEntry*> entries;
+            entries.insert(entries.end(), func_entry->parameters.begin(), func_entry->parameters.end());
+            entries.insert(entries.end(), func_entry->locals.begin(), func_entry->locals.end());
+
+            for (auto &entry: entries)
+            {
+                // class name check
+                if (class_type_map.find(entry->var_name) != class_type_map.end())
+                {
+                    cerr << "Class " << class_entry->class_name << " has a function " << func_entry->function_name << " with a parameter/local variable with same name as a class: " << entry->var_name << endl;
+                    assert(false);
+                }
+
+                // member name check
+                if (class_entry->member_names.find(entry->var_name) != class_entry->member_names.end())
+                {
+                    cerr << "Class " << class_entry->class_name << " has a function " << func_entry->function_name << " with a parameter/local variable with same name as a member: " << entry->var_name << endl;
+                    assert(false);
+                }
+
+                // local name check
+                if (local_names.find(entry->var_name) != local_names.end())
+                {
+                    cerr << "Class " << class_entry->class_name << " has a function " << func_entry->function_name << " with two parameters/local variables with same name: " << entry->var_name << endl;
+                    assert(false);
+                }
+
+                local_names.insert(entry->var_name);
+            }
+
+            func_entry->local_names = std::move(local_names);
+        }
+    }
+
+    // Requirement #4: Types of class variable, function returns, local variables and parameters should be valid.
+    for (auto &class_entry: classes)
+    {
+        // class variables
+        for (auto &var: class_entry->variables)
+        {
+            if (class_type_map.find(var->var_type_name) == class_type_map.end())
+            {
+                cerr << "Class " << class_entry->class_name << " has a variable " << var->var_name << " with invalid type: " << var->var_type_name << endl;
+                assert(false);
+            }
+            var->type_entry = class_type_map[var->var_type_name];
+        }
+
+        // function returns
+        for (auto &fun: class_entry->functions)
+        {
+            if (class_type_map.find(fun->return_type_name) == class_type_map.end() && fun->return_type != VariableType::VOID)
+            {
+                cerr << "Class " << class_entry->class_name << " has a function " << fun->function_name << " with invalid return type: " << fun->return_type_name << endl;
+                assert(false);
+            }
+            fun->return_type_entry = class_type_map[fun->return_type_name];
+        }
+
+        // function parameters and local variables
+        for (auto &fun: class_entry->functions)
+        {
+            for (auto &param: fun->parameters)
+            {
+                if (class_type_map.find(param->var_type_name) == class_type_map.end())
+                {
+                    cerr << "Class " << class_entry->class_name << " has a function " << fun->function_name << " with a parameter " << param->var_name << " with invalid type: " << param->var_type_name << endl;
+                    assert(false);
+                }
+                param->type_entry = class_type_map[param->var_type_name];
+            }
+
+            for (auto &local: fun->locals)
+            {
+                if (class_type_map.find(local->var_type_name) == class_type_map.end())
+                {
+                    cerr << "Class " << class_entry->class_name << " has a function " << fun->function_name << " with a local variable " << local->var_name << " with invalid type: " << local->var_type_name << endl;
+                    assert(false);
+                }
+                local->type_entry = class_type_map[local->var_type_name];
+            }
+        }
+    }
 }

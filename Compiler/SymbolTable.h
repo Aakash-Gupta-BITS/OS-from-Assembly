@@ -35,7 +35,7 @@ struct ASTNode
     int sym_index = 0;
 
     Token* token = nullptr;
-    std::vector<ASTNode*> children;
+    std::vector<ASTNode*> children {};
     ASTNode* sibling = nullptr;
 
     friend std::ostream& operator<<(std::ostream&, const ASTNode&);
@@ -53,27 +53,35 @@ struct ASTNode
 
 class ClassLevelTable;
 class GlobalTable;
+ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent = nullptr, ASTNode* inherited = nullptr);
 
 struct VariableEntry
 {
     std::string var_name;
+    std::string var_type_name;
     VariableType var_type;
     VariableCategory var_category;
     int index;
-    ClassLevelTable* type_entry;
+    ClassLevelTable* type_entry;        // not filled yet
 };
 
-struct FunctionEntry
+class FunctionEntry
 {
     MethodCategory category;
     std::string function_name;
+
+    std::string return_type_name;
     VariableType return_type;
     ClassLevelTable* return_type_entry;
+
     std::vector<VariableEntry*> parameters;
     std::vector<VariableEntry*> locals;
     ASTNode* body;
 
+    std::set<std::string_view> local_names;
+public:
     explicit FunctionEntry(ASTNode*);
+    friend class GlobalTable;
 };
 
 class ClassLevelTable
@@ -82,9 +90,11 @@ class ClassLevelTable
     std::vector<VariableEntry*> variables;
     std::vector<FunctionEntry*> functions;
 
+    std::set<std::string_view> member_names;
 public:
     explicit ClassLevelTable(ASTNode*);
     friend class GlobalTable;
+    friend class FunctionEntry;
 };
 
 class GlobalTable
@@ -92,11 +102,16 @@ class GlobalTable
     static GlobalTable* singleton_;
 
     GlobalTable() = default;
-public:
     std::vector<ClassLevelTable*> classes;
+
+    std::map<std::string_view, ClassLevelTable*> class_type_map;
+    bool check_names_called = false;
+public:
 
     GlobalTable(GlobalTable &other) = delete;
     void operator=(const GlobalTable &) = delete;
+
+    friend ASTNode* createAST(const ParseTreeNode* input, const ParseTreeNode* parent, ASTNode* inherited);
 
     static GlobalTable *getInstance()
     {
@@ -105,4 +120,5 @@ public:
         return GlobalTable::singleton_;
     }
     void add_class(ParseTreeNode*);
+    void check_names();
 };

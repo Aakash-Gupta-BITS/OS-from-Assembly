@@ -113,8 +113,8 @@ If everything is fine, then the `stderr` will contain parser table construction,
 ### File Format
 #### File level checks
 1. There should be Main.main.
-2. Main.main accepts 0 arguments.
-3. There should not be any function named Sys.init.
+2. `Main.main` accepts `0` arguments.
+3. There should not be any function named `Sys.init`.
 4. Function names should not be repeated.
 5. Calls must match existing function names.
 6. Calls must match exact number of arguments in the definition.
@@ -134,3 +134,42 @@ If everything is fine, then the `stderr` will contain parser table construction,
 #### Not Handled Yet
 - `pointer` datatype in assembly generation.
 - Multiple files as input.
+
+
+## Compiler
+This is the fourth project. It takes multiple files as input and generates a valid bytecode.
+
+### Running
+1. Compilation has to be done via the following command:
+   ```{bash}
+   g++ -o compiler.out *.cpp --std=c++17
+   ```
+2. To convert the given file to bytecode, use the following:
+   ```{bash}
+   ./compiler.out <DFA file> <Grammar file> <input_file_location> <output_bytecode_location>
+   ```
+3. To convert the given files to bytecode, use the following:
+   ```{bash}
+   NOT IMPLEMENTED YET
+   ```
+
+### I/O Redirections
+`stdout` and `stdin` have no use. Debug output is automatically redirected to `stderr`.
+There are two exit mechanisms in the code:
+1. `exit(-1)` is used when the CLI arguments are not correct or the parse table is not constructed successfully.
+2. `assert(false)` is used when there are logical errors in the code - Both compiler or user.
+
+If everything is fine, then the `stderr` will contain parser table construction, parsing steps, parse tree output, Abstract Syntax Tree, Type check errors and a success message for assembly dump.
+
+### Code Checks
+#### Naming Checks
+1. No two classes have same name.
+2. No two members in a class can have same name. The member names should not match existing class names.
+3. A local variable name and parameter name inside function can't be a class name, member name in existing class, same name.
+4. Types of class variable, function returns, local variables and parameters should be valid.
+
+#### Not implemented yet
+1. Function body - Variables should refer to existing class variables or locals or params.
+2. Function body - Member access should resolve to existing names.
+3. There should be a class named `Main`. This class should have a function named `main` with no arguments.
+4. There should not be any function named `init` inside `Sys` class. This is reserved for the entry point of the program inside bytecode.

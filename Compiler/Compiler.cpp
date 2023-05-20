@@ -48,6 +48,7 @@ int main(int argc, char** argv)
 
     // AST
     GlobalTable::getInstance()->add_class(parseNode);
+    GlobalTable::getInstance()->check_names();
     cleanParseTree(parseNode);
 
     cerr << endl;
