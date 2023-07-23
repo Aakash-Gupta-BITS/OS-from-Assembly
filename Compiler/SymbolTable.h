@@ -62,7 +62,7 @@ struct VariableEntry
     VariableType var_type;
     VariableCategory var_category;
     int index;
-    ClassLevelTable* type_entry;        // not filled yet
+    ClassLevelTable* type_entry;
 };
 
 class FunctionEntry

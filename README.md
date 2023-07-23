@@ -167,9 +167,27 @@ If everything is fine, then the `stderr` will contain parser table construction,
 2. No two members in a class can have same name. The member names should not match existing class names.
 3. A local variable name and parameter name inside function can't be a class name, member name in existing class, same name.
 4. Types of class variable, function returns, local variables and parameters should be valid.
+5. Function body - Identifier usages should refer to existing valid names.
 
 #### Not implemented yet
-1. Function body - Variables should refer to existing class variables or locals or params.
-2. Function body - Member access should resolve to existing names.
-3. There should be a class named `Main`. This class should have a function named `main` with no arguments.
-4. There should not be any function named `init` inside `Sys` class. This is reserved for the entry point of the program inside bytecode.
+1. There should be a class named `Main`. This class should have a function named `main` with no arguments. Other classes can have `main` but that is not our concern.
+2. There should not be any function named `init` inside `Sys` class. This is reserved for the entry point of the program inside bytecode.
+
+
+#### Member Access rules
+
+The following table is applicable for `X` in `X` or `X.Y` or `X()` or `X.Y()`.
+
+| Case | User Defined Type | Class (self) function | Class (self) vars/function locals/params |
+| ---- | ----------------- | --------------------- | ---------------------------------------- |
+| `X` | NO | NO | YES |
+| `X.Y` | YES | NO | YES |
+| `X()` | NO | YES | NO |
+| `X.Y()` | YES | NO | YES |
+
+The following table is applicable for `Y` in `X.Y` or `X.Y()`.
+
+| Case | User Defined Type | Class Member Type |
+| ---- | ----------------- | --------------------- |
+| `X.Y` | NO | Member variable |
+| `X.Y()` | NO | Member function |

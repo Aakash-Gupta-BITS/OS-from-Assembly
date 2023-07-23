@@ -3,6 +3,7 @@
 #include <cassert>
 #include <set>
 #include <algorithm>
+#include <functional>
 using namespace std;
 
 GlobalTable* GlobalTable::singleton_ = nullptr;
@@ -535,7 +536,7 @@ FunctionEntry::FunctionEntry(ASTNode *node)
             break;
 
         default:
-            cerr << "This should never occur! Parsing rules are wrong!!";
+            cerr << "This should never occur! Parsing rules are wrong!!" << endl;
             assert(false);
     }
     delete node->children[0];
@@ -630,6 +631,35 @@ void GlobalTable::add_class(ParseTreeNode* node)
     createAST(node);
 }
 
+void member_iterator(ASTNode* node, function<void(ASTNode*, bool)> fn)
+{
+    if (node == nullptr)
+        return;
+
+    auto& children = node->children;
+
+    // presence of '(' in AST implies we are making a function call
+    if (node->token->type == TokenType::TK_PARENO)
+    {
+        assert(children.size() == 2);
+        fn(children[0], true);
+        member_iterator(children[1], fn);
+        assert(node->sibling == nullptr);
+    }
+
+    if (node->token->type == TokenType::TK_IDENTIFIER ||
+        node->token->type == TokenType::TK_DOT)
+    {
+        fn(node, false);
+        return;
+    }
+
+    for (auto& child : children)
+        member_iterator(child, fn);
+
+    member_iterator(node->sibling, fn);
+}
+
 void GlobalTable::check_names()
 {
     assert(!check_names_called);
@@ -637,11 +667,11 @@ void GlobalTable::check_names()
 
     class_type_map.clear();
 
-    for (auto &name: {"int", "char", "boolean"})
+    for (auto& name : { "int", "char", "boolean" })
         class_type_map[name] = nullptr;
 
     // Requirement #1: No two classes have same name. Their being `int` or `char` is not checked as this is handled via lexer and parser.
-    for (auto &class_entry: classes)
+    for (auto& class_entry : classes)
     {
         if (class_type_map.find(class_entry->class_name) != class_type_map.end())
         {
@@ -652,11 +682,11 @@ void GlobalTable::check_names()
     }
 
     // Requirement #2: No two members in a class can have same name. The member names should not match existing class names.
-    for (auto &class_entry: classes)
+    for (auto& class_entry : classes)
     {
-        set<string_view> member_names;
+        auto& member_names = class_entry->member_names;
 
-        for (auto& var: class_entry->variables)
+        for (auto& var : class_entry->variables)
         {
             if (member_names.find(var->var_name) != member_names.end())
             {
@@ -670,7 +700,7 @@ void GlobalTable::check_names()
             }
             member_names.insert(var->var_name);
         }
-        for (auto& fun: class_entry->functions)
+        for (auto& fun : class_entry->functions)
         {
             if (member_names.find(fun->function_name) != member_names.end())
             {
@@ -685,21 +715,19 @@ void GlobalTable::check_names()
 
             member_names.insert(fun->function_name);
         }
-
-        class_entry->member_names = std::move(member_names);
     }
 
     // Requirement #3: A local variable name and parameter name inside function can't be a class name, member name in existing class, same name.
-    for (auto &class_entry: classes)
+    for (auto& class_entry : classes)
     {
-        for (auto &func_entry: class_entry->functions)
+        for (auto& func_entry : class_entry->functions)
         {
-            set<string_view> local_names;
+            auto& local_names = func_entry->local_names;
             vector<VariableEntry*> entries;
             entries.insert(entries.end(), func_entry->parameters.begin(), func_entry->parameters.end());
             entries.insert(entries.end(), func_entry->locals.begin(), func_entry->locals.end());
 
-            for (auto &entry: entries)
+            for (auto& entry : entries)
             {
                 // class name check
                 if (class_type_map.find(entry->var_name) != class_type_map.end())
@@ -724,16 +752,14 @@ void GlobalTable::check_names()
 
                 local_names.insert(entry->var_name);
             }
-
-            func_entry->local_names = std::move(local_names);
         }
     }
 
     // Requirement #4: Types of class variable, function returns, local variables and parameters should be valid.
-    for (auto &class_entry: classes)
+    for (auto& class_entry : classes)
     {
         // class variables
-        for (auto &var: class_entry->variables)
+        for (auto& var : class_entry->variables)
         {
             if (class_type_map.find(var->var_type_name) == class_type_map.end())
             {
@@ -744,7 +770,7 @@ void GlobalTable::check_names()
         }
 
         // function returns
-        for (auto &fun: class_entry->functions)
+        for (auto& fun : class_entry->functions)
         {
             if (class_type_map.find(fun->return_type_name) == class_type_map.end() && fun->return_type != VariableType::VOID)
             {
@@ -755,9 +781,9 @@ void GlobalTable::check_names()
         }
 
         // function parameters and local variables
-        for (auto &fun: class_entry->functions)
+        for (auto& fun : class_entry->functions)
         {
-            for (auto &param: fun->parameters)
+            for (auto& param : fun->parameters)
             {
                 if (class_type_map.find(param->var_type_name) == class_type_map.end())
                 {
@@ -767,7 +793,7 @@ void GlobalTable::check_names()
                 param->type_entry = class_type_map[param->var_type_name];
             }
 
-            for (auto &local: fun->locals)
+            for (auto& local : fun->locals)
             {
                 if (class_type_map.find(local->var_type_name) == class_type_map.end())
                 {
@@ -776,6 +802,113 @@ void GlobalTable::check_names()
                 }
                 local->type_entry = class_type_map[local->var_type_name];
             }
+        }
+    }
+
+    // Requirement #5, #6: Function body - Identifier usage should refer to existing valid name.
+    for (auto& class_entry : classes)
+    {
+        map<string_view, ClassLevelTable*> valid_names;
+        for (auto& x : class_entry->variables)
+            valid_names[x->var_name] = x->type_entry;
+
+        set<string_view> self_functions;
+        for (auto& f : class_entry->functions)
+            self_functions.insert(f->function_name);
+
+        for (auto& func_entry : class_entry->functions)
+        {
+            for (auto& x : func_entry->parameters)
+                valid_names[x->var_name] = x->type_entry;
+            for (auto& x : func_entry->locals)
+                valid_names[x->var_name] = x->type_entry;
+
+            // we are allowing the following here: X | X.Y | X() | X.Y()
+            // while the language parsing rules only allows for X | X() | X.Y()
+            member_iterator(func_entry->body,
+                [this, self_functions, class_entry, valid_names](ASTNode* member, bool is_function_call) {
+                    const int& line_number = member->token->line_number;
+                    const bool dot_type = member->token->type == TokenType::TK_DOT;
+                    const auto& main_name = dot_type ?
+                        member->children[0]->token->lexeme :
+                        member->token->lexeme;
+                    const auto& secondary_name = dot_type ? member->children[1]->token->lexeme : "";
+
+                    bool X_user_class_type = (class_type_map.find(main_name) != class_type_map.end());
+                    bool X_self_function = self_functions.find(main_name) != self_functions.end();
+                    bool X_local_var = valid_names.find(main_name) != valid_names.end();
+
+                    int count = (X_user_class_type ? 1 : 0) + (X_self_function ? 1 : 0) + (X_local_var ? 1 : 0);
+                    assert(count <= 1);
+                    if (count == 0)
+                    {
+                        cerr << "Line number " << line_number << ": Variable " << main_name << " is not found." << endl;
+                        assert(false);
+                    }
+
+                    if (dot_type)
+                    {
+                        if (X_self_function)
+                        {
+                            cerr << "Line number " << line_number << ": Variable " << main_name << " can't be a member function name." << endl;
+                            assert(false);
+                        }
+
+                        // checks for y
+                        ClassLevelTable* class_ref = nullptr;
+                        if (X_user_class_type)
+                            class_ref = class_type_map[main_name];
+                        else
+                            class_ref = valid_names.at(main_name);
+
+                        assert(class_ref != nullptr);
+                        if (class_ref->member_names.find(secondary_name) == class_ref->member_names.end())
+                        {
+                            cerr << "Line number " << line_number << ": Member " << secondary_name << " doesn't exist in class " << class_ref->class_name << "." << endl;
+                            assert(false);
+                        }
+
+                        bool is_variable = false;
+                        for (auto& x : class_ref->variables)
+                            if (x->var_name == secondary_name)
+                                is_variable = true;
+
+                        if (is_function_call && is_variable)
+                        {
+                            cerr << "Line number " << line_number << ": Member " << secondary_name << " is a member variable but is treated as function." << endl;
+                            assert(false);
+                        }
+
+                        if (!is_function_call && !is_variable)
+                        {
+                            cerr << "Line number " << line_number << ": Member " << secondary_name << " is a member function but is treated as variable." << endl;
+                            assert(false);
+                        }
+                    }
+                    else
+                    {
+                        if (X_user_class_type)
+                        {
+                            cerr << "Line number " << line_number << ": Variable " << main_name << " can't be a user defined type." << endl;
+                            assert(false);
+                        }
+
+                        if (is_function_call && X_local_var)
+                        {
+                            cerr << "Line number " << line_number << ": Variable " << main_name << " can't be called with ()." << endl;
+                            assert(false);
+                        }
+                        
+                        if (!is_function_call && X_self_function)
+                        {
+                            cerr << "Line number " << line_number << ": Function " << main_name << " is not called." << endl;
+                            assert(false);
+                        }
+                    }
+                });
+
+            for (auto& x : func_entry->local_names)
+                valid_names.erase(x);
         }
     }
 }
