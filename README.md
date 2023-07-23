@@ -168,10 +168,10 @@ If everything is fine, then the `stderr` will contain parser table construction,
 3. A local variable name and parameter name inside function can't be a class name, member name in existing class, same name.
 4. Types of class variable, function returns, local variables and parameters should be valid.
 5. Function body - Identifier usages should refer to existing valid names.
+6. There should be a class named `Main`. This class should have a function named `main` with no arguments. Other classes can have `main` but that is not our concern.
 
 #### Not implemented yet
-1. There should be a class named `Main`. This class should have a function named `main` with no arguments. Other classes can have `main` but that is not our concern.
-2. There should not be any function named `init` inside `Sys` class. This is reserved for the entry point of the program inside bytecode.
+1. There should not be any function named `init` inside `Sys` class. This is reserved for the entry point of the program inside bytecode.
 
 
 #### Member Access rules

@@ -805,7 +805,7 @@ void GlobalTable::check_names()
         }
     }
 
-    // Requirement #5, #6: Function body - Identifier usage should refer to existing valid name.
+    // Requirement #5: Function body - Identifier usage should refer to existing valid name.
     for (auto& class_entry : classes)
     {
         map<string_view, ClassLevelTable*> valid_names;
@@ -910,5 +910,32 @@ void GlobalTable::check_names()
             for (auto& x : func_entry->local_names)
                 valid_names.erase(x);
         }
+    }
+
+    // Requirement #6: There should be a class named `Main`. This class should have a function named `main` with no arguments. Other classes can have `main` but that is not our concern.
+    if (class_type_map.find("Main") == class_type_map.end())
+    {
+        cerr << "Class 'Main' not found." << endl;
+        assert(false);
+    }
+
+    FunctionEntry* main_func = nullptr;
+    for (auto& x : class_type_map["Main"]->functions)
+        if (x->function_name == "main")
+        {
+            main_func = x;
+            break;
+        }
+
+    if (main_func == nullptr)
+    {
+        cerr << "'main' function not found inside class 'Main'" << endl;
+        assert(false);
+    }
+
+    if (main_func->parameters.size() != 0)
+    {
+        cerr << "'main' function inside 'Main' class should not accept any parameters" << endl;
+        assert(false);
     }
 }
