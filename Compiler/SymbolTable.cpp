@@ -645,6 +645,7 @@ void member_iterator(ASTNode* node, function<void(ASTNode*, bool)> fn)
         fn(children[0], true);
         member_iterator(children[1], fn);
         assert(node->sibling == nullptr);
+        return;
     }
 
     if (node->token->type == TokenType::TK_IDENTIFIER ||

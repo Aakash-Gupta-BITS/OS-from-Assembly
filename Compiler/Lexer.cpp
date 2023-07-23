@@ -58,31 +58,32 @@ void loadDFA()
 	// state 24 - accept state for whitespace
 	dfa.productions[0][' ']
 		= dfa.productions[0]['\t']
-        = dfa.productions[0]['\r']
-        = dfa.productions[0]['\n']
+		= dfa.productions[0]['\r']
+		= dfa.productions[0]['\n']
 		= dfa.productions[24][' ']
 		= dfa.productions[24]['\t']
-        = dfa.productions[24]['\r']
-        = dfa.productions[24]['\n']
+		= dfa.productions[24]['\r']
+		= dfa.productions[24]['\n']
 		= 24;
 
-    for (int i = 0; i < 128; ++i)
-    {
-        dfa.productions[21][i] = 21;
-        dfa.productions[25][i] = 25;
-        dfa.productions[27][i] = 27;
-        dfa.productions[28][i] = 27;
-    }
+	for (int i = 0; i < 128; ++i)
+	{
+		dfa.productions[21][i] = 21;
+		dfa.productions[25][i] = 25;
+		dfa.productions[27][i] = 27;
+		dfa.productions[28][i] = 27;
+	}
 
-    // 21 - STR
-    dfa.productions[21]['"'] = 22;
-    dfa.productions[21]['\n'] = -1;
+	// 21 - STR
+	dfa.productions[21]['"'] = 22;
+	dfa.productions[21]['\n'] = -1;
+	dfa.productions[21]['\r'] = -1;
 
-    // 25, 27, 28 - COMMENT
-    dfa.productions[25]['\n'] = 26;
-    dfa.productions[27]['*'] = 28;
-    dfa.productions[28]['*'] = 28;
-    dfa.productions[28]['/'] = 29;
+	// 25, 27, 28 - COMMENT
+	dfa.productions[25]['\n'] = -1;
+	dfa.productions[27]['*'] = 28;
+	dfa.productions[28]['*'] = 28;
+	dfa.productions[28]['/'] = 29;
 
 	// Load Final States
 	dfa.finalStates.clear();
@@ -111,20 +112,22 @@ void loadDFA()
 
 void onTokenFromDFA(Token*& token, Buffer& buffer)
 {
+	token->lexeme.reserve(token->length + 1);
+	for (int i = 0; i < token->length; i++)
+		token->lexeme.push_back(buffer.getChar(buffer.start_index - token->length + i));
+	token->lexeme[token->length] = 0;
+
 	if (token->type == TokenType::TK_WHITESPACE || token->type == TokenType::TK_COMMENT)
 	{
+		for (char c : token->lexeme)
+			if (c == '\n')
+				buffer.line_number++;
 		delete token;
 		token = nullptr;
 		return;
 	}
 
-	char* BUFF = new char[token->length + 1];
-	for (int i = 0; i < token->length; i++)
-		BUFF[i] = buffer.getChar(buffer.start_index - token->length + i);
-	BUFF[token->length] = 0;
-	token->lexeme = BUFF;
-
-    // Handle keyword
+	// Handle keyword
 	if (token->type == TokenType::TK_IDENTIFIER)
 	{
 		auto res = dfa.lookupTable.find(token->lexeme);
@@ -208,15 +211,7 @@ Token* getNextToken(Buffer& buffer)
 {
 	while (buffer.getTopChar() != '\0')
 	{
-        if (buffer.getTopChar() == '\n')
-        {
-            buffer.line_number++;
-            buffer.start_index++;
-            continue;
-        }
-
-        Token* token = getTokenFromDFA(buffer);
-
+		Token* token = getTokenFromDFA(buffer);
 		assert(token != nullptr);
 
 		token->start_index = buffer.start_index;

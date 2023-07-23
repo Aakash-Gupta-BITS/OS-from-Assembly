@@ -3,10 +3,12 @@ class Square
     field int x, y; // location on the screen
     field int size; // The size of the square
     static Square st_field;
+field Square Screen;
 
     // Increments the square size by 2.
     method void incSize(int a, int b) {
-        var char scd;
+        var char scd;/*
+            */
         if (((y + size) < 254) & ((x + size) < 510)) {
             do erase();
             let size = size + 2;
@@ -14,6 +16,11 @@ class Square
         }
         return;
     }
+
+method void erase() {}
+method void draw() {}
+method void setColor(){}
+method void drawRectangle(){}
 
     // Moves the square up by 2 pixels.
     method void moveUp() {

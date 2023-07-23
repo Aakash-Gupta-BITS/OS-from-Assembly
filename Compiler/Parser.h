@@ -4,6 +4,7 @@
 #include <bitset>
 #include <map>
 #include <string>
+#include <limits>
 
 class Parser
 {
