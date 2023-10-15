@@ -934,9 +934,18 @@ void GlobalTable::check_names()
         assert(false);
     }
 
-    if (main_func->parameters.size() != 0)
+    if (!main_func->parameters.empty())
     {
         cerr << "'main' function inside 'Main' class should not accept any parameters" << endl;
         assert(false);
     }
+
+    // Requirement #7: There should not be any function named `init` inside `Sys` class. This is reserved for the entry point of the program inside bytecode.
+    // Either `Sys` class should not be present or `init` should not be a function inside it.
+    if (class_type_map.contains("Sys") && class_type_map["Sys"]->member_names.contains("init"))
+    {
+        cerr << "'Sys' class should not contain a user defined function 'init'" << endl;
+        assert(false);
+    }
+
 }
