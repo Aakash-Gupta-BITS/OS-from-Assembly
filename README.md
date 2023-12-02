@@ -4,21 +4,15 @@ There are many projects. One which simulates the binary file is completed.
 ## Binary Simulator
 ### Running
 1. Compilation has to be done via the following command:
-
-   ```{bash}
-   g++ -o simulator.out CPU.cpp
+   ```
+   g++ -o simulator.out CPU.cpp --std=c++20
    ```
    
-2. To run the instructions which depends on predefined memory contents, do the following:
-
+2. To run the instructions, follow the following syntax:
    ```
-   ./simulator.out <instruction_file_location> <memory_dump_location> <memory_file_location>
+   ./simulator.out instruction_file_loc [memory_dump_loc] [memory_input_loc]
    ```
-3. To run the instructions which doesn't depend on predefined memory contents, do the following:
-   ```
-   ./simulator.out <instruction_file_location> <memory_dump_location>
-   ```
-
+   
 ### I/O Redirections
 - `stdout` and `stdin` have no use.
 - To see the debug output, pass the `-DDEBUG_MODE` flag to compiler while compiling. Debug output is automatically redirected to `stderr`.
@@ -27,11 +21,9 @@ There are many projects. One which simulates the binary file is completed.
   <binary instruction to execute> <A after execution> <D afetr execution> <data at address value of A after execution> <PC value after execution>
   ...
   ```
-- In case of any invalid instruction, the program will abort with a call to `std::exit(-1)`
+- In case of any invalid condition, the program will abort with a call to `throw std::runtime_error()`.
 
 ### File Format
-Note that there should be a newline at the end of each input file.
-
 Both memory and instruction files have one instruction per line, with each instruction in binary format. For example, we can have the following instruction file:
 ```
 0000 0000 0000 0000
@@ -42,22 +34,16 @@ Both memory and instruction files have one instruction per line, with each instr
 1110 0011 0000 1000
 1110 1110 1010 0000
 1110 1010 1000 0111
-
 ```
 and the following data file:
 ```
 0000 0000 0000 0001
 0000 0000 0000 0010
-
 ```
 
-### Special Instructions
-- Following instruction is used to define a nop operation:
-  ```
-  1111 1111 1111 1111
-  ```
-  - Usage: In directly mapping each line of assembly to binary, we can refer line numbers directly to jump to binary location.
-- Also, when `PC` is set to $65535$, the program finishes. In the above example, copy last two lines from instructions to set `PC` to $65535$.
+### Special Cases
+- Following instruction is used to define a nop operation: `0xFFFF`
+- Also, when `PC` is set to `0xFFFF`, the program finishes. In the above example, copy last two lines from instructions to set `PC` to $65535$.
 
 ### Semantic Special Cases
 Consider the following command:
