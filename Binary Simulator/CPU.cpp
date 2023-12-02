@@ -43,7 +43,7 @@ struct DATA_MEMORY
     array<int16_t, SCREEN_SIZE> screen{};
     int16_t keyboard{};
 
-    constexpr int16_t& operator[](uint16_t address) noexcept
+    constexpr int16_t& operator[](uint16_t address)
     {
         if ((address & 0b1100'0000'0000'0000) == 0)
             return ram[address];
@@ -58,7 +58,7 @@ struct DATA_MEMORY
                                         address));
     }
 
-    constexpr const int16_t& operator[](uint16_t address) const noexcept
+    constexpr const int16_t& operator[](uint16_t address) const
     {
         if ((address & 0b1100'0000'0000'0000) == 0)
             return ram[address];
@@ -420,8 +420,16 @@ int main(int argc, char** argv)
                              "Instruction (Executed)", "Register PC",
                              "Register A", "Register D", "Memory[A]");
 
-    for (const auto &[R, M, I] : mbd)
-        std::cerr << std::format("{:<23}{:<13}{:<13}{:<13}{}\n", I, R.PC, R.A, R.D, M);
+    try
+    {
+        for (const auto &[R, M, I] : mbd)
+            std::cerr << std::format("{:<23}{:<13}{:<13}{:<13}{}\n", I, R.PC, R.A, R.D, M);
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Caught exception: '" << e.what() << "'\n";
+        std::terminate();
+    }
 
     std::cerr << "\nFINISHED EXECUTION" << std::endl;
 
