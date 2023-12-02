@@ -7,7 +7,7 @@ add_executable(VMTranslator.out "VMTranslator/Translator.cpp" "VMTranslator/AST.
 )
 add_executable(Assembler.out "Assembler/Assembler.cpp" "Assembler/Lexer.cpp" "Assembler/Parser.cpp"
 )
-add_executable(CPU.out "Binary Simulator/CPU.cpp"
+add_executable(CPU.out "BinarySimulator/CPU.cpp"
 )
 target_compile_features(Compiler.out PRIVATE cxx_std_20)
 target_compile_features(VMTranslator.out PRIVATE cxx_std_20)

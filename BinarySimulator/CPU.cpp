@@ -58,7 +58,7 @@ struct DATA_MEMORY
                                         address));
     }
 
-    constexpr const int16_t& operator[](uint16_t address) const
+    constexpr const int16_t operator[](uint16_t address) const
     {
         if ((address & 0b1100'0000'0000'0000) == 0)
             return ram[address];
@@ -265,8 +265,8 @@ struct Motherboard
     struct STATUS
     {
         const REGISTERS& registers;
-        const int16_t& memory;
-        const uint16_t& ins;
+        const uint16_t ins;
+        const optional<int16_t> memory{};
     };
 
     struct sentinel {};
@@ -319,9 +319,13 @@ struct Motherboard
 
             return *this;
         }
-        const constexpr STATUS operator*() const // NOLINT(*-const-return-type)
+
+        const constexpr STATUS operator*() const
         {
-            return { regs, dm[regs.A], im[regs.PC] };
+            if (regs.A == bit_cast<int16_t>(TERMINATION_PC_ADDRESS))
+                return { regs, im[regs.PC] };
+
+            return { regs, im[regs.PC], dm[regs.A] };
         }
     };
 
@@ -352,7 +356,7 @@ struct Config
 
         string line;
         int i = 0;
-        while (std::getline(std::cin, line))
+        while (std::getline(file, line))
         {
             uint16_t val = 0;
             for (char c : line)
@@ -370,7 +374,7 @@ struct Config
 
     Config(int argc, char** argv)
     {
-        if (argc != 2 && argc != 3 && argc != 4)
+        if (argc < 2 || argc > 4)
         {
             cerr << "format: ./simulator.out instruction_file_loc [memory_dump_loc] [memory_input_loc]" << endl;
             std::exit(-1);
@@ -379,7 +383,7 @@ struct Config
         instruction_file_loc = argv[1];
         if (argc >= 3)
             memory_dump_loc = argv[2];
-        if (argc >= 4)
+        if (argc == 4)
             memory_input_loc = argv[3];
     }
 
@@ -390,7 +394,7 @@ struct Config
         });
 
         load_file(instruction_file_loc, [&](size_t index, uint16_t val) {
-            mbd.dm[index] = bit_cast<int16_t>(val);
+            mbd.im[index] = bit_cast<int16_t>(val);
         });
     }
 
@@ -405,8 +409,10 @@ struct Config
         out << "D:  " << mbd.regs.D << endl;
         out << "PC: " << mbd.regs.PC << endl;
         out << "Memory Contents: " << endl;
-        for (int i = 0; i <= sizeof(DATA_MEMORY); ++i)
-            out << i << "\t" << bitset<16>(mbd.dm[i]) << "\t(" << mbd.dm[i] << ")" << endl;
+
+        for (int i = 0; i < DATA_COUNT; ++i)
+            if (mbd.dm[i] != 0)
+                out << i << "\t" << bitset<16>(mbd.dm[i]) << "\t(" << mbd.dm[i] << ")" << endl;
     }
 };
 
@@ -422,8 +428,8 @@ int main(int argc, char** argv)
 
     try
     {
-        for (const auto &[R, M, I] : mbd)
-            std::cerr << std::format("{:<23}{:<13}{:<13}{:<13}{}\n", I, R.PC, R.A, R.D, M);
+        for (const auto &[R, I, M] : mbd)
+            std::cerr << std::format("{:<23}{:<13}{:<13}{:<13}{}\n", I, R.PC, R.A, R.D, (M.has_value() ? to_string(M.value()) : "-"));
     }
     catch (const std::exception& e)
     {
