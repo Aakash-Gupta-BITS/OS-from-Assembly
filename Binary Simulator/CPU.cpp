@@ -27,7 +27,8 @@ const uint16_t SCREEN_SIZE = 0X2000;
 const uint16_t DATA_COUNT = RAM_SIZE + SCREEN_SIZE + 1;
 const uint16_t INSTRUCTION_COUNT = 0x8000;
 
-const auto TERMINATION_ADDRESS = bit_cast<uint16_t>((int16_t) - 1);
+const auto TERMINATION_PC_ADDRESS = bit_cast<uint16_t>((int16_t) - 1);
+const auto NOP = bit_cast<uint16_t>((int16_t) - 1);
 
 enum class InstructionType : uint8_t
 {
@@ -276,10 +277,13 @@ struct Motherboard
         const INSTRUCTION_MEMORY& im;
         REGISTERS& regs;
 
-        constexpr bool operator!=(sentinel) const { return regs.PC != TERMINATION_ADDRESS; }
+        constexpr bool operator!=(sentinel) const { return regs.PC != TERMINATION_PC_ADDRESS; }
         constexpr iterator& operator++()
         {
-            auto& ins = im[regs.PC];
+            uint16_t ins = im[regs.PC];
+            while (ins == NOP)
+                ins = im[regs.PC];
+
             auto ins_type = get_instruction_type(ins);
             if (ins_type == InstructionType::A)
             {
@@ -289,6 +293,7 @@ struct Motherboard
             }
             if (ins_type != InstructionType::C)
                 throw runtime_error(format("Invalid instruction type encountered: 0x{:04X}", ins));
+
 
             uint8_t j = ins & 07;
             uint8_t d = (ins & 070) >> 3;
