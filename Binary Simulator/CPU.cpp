@@ -1,12 +1,35 @@
 #include <cstdint>
 #include <ostream>
 #include <iostream>
-#include <cassert>
 #include <bitset>
 #include <fstream>
 #include <string>
+#include <bit>
+#include <array>
+#include <functional>
 
 using namespace std;
+
+// Make sure we are using 2's complement representation.
+// https://stackoverflow.com/questions/64842669/how-to-test-if-a-target-has-twos-complement-integers-with-the-c-preprocessor
+#if (-1 & 3) == 1
+    static_assert(false, "The encoding is sign-and-magnitude. This will compile on 2's complement.");
+#elif (-1 & 3) == 2
+    static_assert(false, "The encoding is one’s complement. This will compile on 2's complement.");
+#elif (-1 & 3) == 3
+    // 2's complement system
+#else
+    static_assert(false, "The encoding is not possible in C standard. This will compile on 2's complement.");
+#endif
+
+#define DEBUG_MODE  // Define DEBUG_MODE to enable debug features
+#ifdef DEBUG_MODE
+#define CONSTEXPR
+#define DEBUG cerr
+#else
+#define CONSTEXPR constexpr
+#define DEBUG ;//
+#endif
 
 const uint16_t INSTRUCTION_COUNT = 1 << 15;	// number of instructions
 const uint16_t DATA_COUNT = 1 << 15;		// number of fields in data memory
@@ -22,16 +45,12 @@ enum class InstructionType : uint8_t
 class Hardware
 {
 private:
-	// Memory elements
-	uint16_t *instructions;
-	int16_t *data;
-
 	// Registers
-	int16_t D = 0;
-	int16_t A = 0;
-	uint16_t PC = 0;
+	int16_t D {};
+	int16_t A {};
+	uint16_t PC {};
 
-	InstructionType get_instruction_type(const uint16_t& ins) const
+	[[nodiscard]] static constexpr InstructionType get_instruction_type(uint16_t ins)
 	{
 		bool A_instruction = !(ins >> 15);
 		bool D_instruction = ((ins >> 13) == 7);
@@ -45,7 +64,7 @@ private:
 		return InstructionType::C;
 	}
 
-	int16_t ALU_a_eq_0(const uint8_t& c)
+	[[nodiscard]] constexpr int16_t ALU_a_eq_0(uint8_t c) const
 	{
 		switch (c)
 		{
@@ -65,86 +84,89 @@ private:
 			return A;
 
 		case 0b001101:
-			return ~D;
+			return (int16_t)~D;
 
 		case 0b110001:
-			return ~A;
+			return (int16_t)~A;
 
 		case 0b001111:
-			return -D;
+			return (int16_t)-D;
 
 		case 0b110011:
-			return -A;
+			return (int16_t)-A;
 
 		case 0b011111:
-			return D + 1;
+			return (int16_t)(D + 1);
 
 		case 0b110111:
-			return A + 1;
+			return (int16_t)(A + 1);
 
 		case 0b001110:
-			return D - 1;
+			return (int16_t)(D - 1);
 
 		case 0b110010:
-			return A - 1;
+			return (int16_t)(A - 1);
 
 		case 0b000010:
-			return D + A;
+			return (int16_t)(D + A);
 
 		case 0b010011:
-			return D - A;
+			return (int16_t)(D - A);
 
 		case 0b000111:
-			return A - D;
+			return (int16_t)(A - D);
 
 		case 0b000000:
-			return A & D;
+			return (int16_t)(A & D);
 
 		case 0b010101:
-			return D | A;
+			return (int16_t)(D | A);
+        default:
+            std::exit(-1);
 		}
-		assert(0);
 	}
 
-	int16_t ALU_a_neq_0(const uint8_t& c)
+    [[nodiscard]] constexpr int16_t ALU_a_neq_0(uint8_t c) const
 	{
-		const int16_t M = data[A];
+        auto mem_location = bit_cast<uint16_t>(A);
+		const auto& M = data[mem_location];
 		switch (c)
 		{
 		case 0b110000:
 			return M;
 
 		case 0b110001:
-			return ~M;
+			return (int16_t)~M;
 
 		case 0b110011:
-			return -M;
+			return (int16_t)-M;
 
 		case 0b110111:
-			return M + 1;
+			return (int16_t)(M + 1);
 
 		case 0b110010:
-			return M - 1;
+			return (int16_t)(M - 1);
 
 		case 0b000010:
-			return D + M;
+			return (int16_t)(D + M);
 
 		case 0b010011:
-			return D - M;
+			return (int16_t)(D - M);
 
 		case 0b000111:
-			return M - D;
+			return (int16_t)(M - D);
 
 		case 0b000000:
-			return M & D;
+			return (int16_t)(M & D);
 
 		case 0b010101:
-			return D | M;
+			return (int16_t)(D | M);
+        default:
+            std::exit(-1);
 		}
-		assert(0);
 	}
 
-	bool should_jump(const uint8_t& j, const int16_t& alu_out)
+	[[nodiscard]] static constexpr bool should_jump(uint8_t j, int16_t alu_out)
 	{
 		switch (j)
 		{
@@ -163,14 +185,13 @@ private:
 		case 0b110:
 			return alu_out <= 0;
 		case 0b111:
-			return true;
+            return true;
+        default:
+            std::exit(-1);
 		}
-
-		// this should not be executed
-		assert(0);
 	}
 
-	void compute(const uint16_t& ins)
+	constexpr void compute(uint16_t ins)
 	{
 		uint8_t j = ins & 07;
 		uint8_t d = (ins & 070) >> 3;
@@ -194,65 +215,50 @@ private:
 	}
 
 public:
-	Hardware(const uint16_t *instructions, const int16_t *data)
-	{
-		this->instructions = new uint16_t[INSTRUCTION_COUNT];
-		this->data = new int16_t[DATA_COUNT];
+    // Memory elements
+    array<uint16_t, INSTRUCTION_COUNT> instructions {};
+    array<int16_t, DATA_COUNT> data {};
 
-		for (int i = 0; i < INSTRUCTION_COUNT; ++i)
-			this->instructions[i] = instructions[i];
-
-		for (int i = 0; i < DATA_COUNT; ++i)
-			this->data[i] = data[i];
-	}
-
-	void reset()
-	{
-		PC = 0;
-		cerr << "reset" << endl;
-		cerr << "Instruction     \tA\tD\tMem[A]\tPC" << endl;
-	}
-
-	void execute_next()
+    CONSTEXPR void execute_next()
 	{
 		if (is_finished())
 		{
-			cerr << "end" << endl;
+			DEBUG << "end" << endl;
 			return;
 		}
 
 		// fetch the instruction
 		auto ins = instructions[PC];
 
-		cerr << bitset<16>(ins) << "\t";
+		DEBUG << bitset<16>(ins) << "\t";
 
 		// Decode the instruction
 		switch (get_instruction_type(ins))
 		{
 		case InstructionType::A:
-			A = ins;
+			A = bit_cast<int16_t>(ins);
 			break;
 
 		case InstructionType::C:
 			if (ins != 0xffff)
-			compute(ins);
+			    compute(ins);
 			break;
 
 		default:
-			assert(0);	// Invalid Instruction
+			std::exit(-1);	// Invalid Instruction
 		}
 
 		// Update PC
 		PC = PC + 1;
 		if (ins == 0xffff)
-			cerr << "nop" << endl;
+			DEBUG << "nop" << endl;
 		else
-			cerr << A << "\t" << D << "\t" << data[A] << "\t" << PC << endl;
+			DEBUG << A << "\t" << D << "\t" << data[A] << "\t" << PC << endl;
 	}
 
-	inline bool is_finished()
+	[[nodiscard]] constexpr bool is_finished() const
 	{
-		return this->PC == uint16_t(-1);
+		return this->PC == bit_cast<uint16_t>((int16_t)-1);
 	}
 
 	void print_data(ostream& out)
@@ -265,30 +271,34 @@ public:
 	}
 };
 
-void load_file_to_memory(char* path, void* dest, int len)
+void load_file_to_memory(char* path, const function<void(size_t, uint16_t)>& f)
 {
-	uint16_t* target = (uint16_t*)dest;
-
 	ifstream file{ path };
-	for (int i = 0; i < len; ++i)
+
+    if (!file)
+    {
+        cerr << "Unable to open file: " << path << endl;
+        std::exit(-1);
+    }
+
+	for (size_t i = 0; ; ++i)
 	{
 		string s;
 		std::getline(file >> std::ws, s);
 
 		if (file.eof()) break;
 
-		target[i] = 0;
+        uint16_t val = 0;
 		for (char c : s)
 		{
 			if (c != '0' && c != '1')
 				continue;
 
-			target[i] <<= 1;
-			target[i] |= (c - '0');
+            val <<= 1;
+            val |= (c - '0');
 		}
+        f(i, val);
 	}
-
-	file.close();
 }
 
 int main(int argc, char** argv)
@@ -298,36 +308,34 @@ int main(int argc, char** argv)
 
 	if (argc != 3 && argc != 4)
 	{
-		cerr << "Invalid number of inputs!!" << endl;
-		assert(0);
+		cerr << "format: ./simulator.out instruction_file_loc memory_dump_loc [memory_input_file_loc]" << endl;
+		std::exit(-1);
 	}
 
-	uint16_t *instructions = new uint16_t[INSTRUCTION_COUNT];
-	int16_t *data = new int16_t[DATA_COUNT];
+    Hardware hd{};
+	load_file_to_memory(argv[1], [&](size_t index, uint16_t val) {
+        hd.instructions[index] = val;
+    });
 
-	// load
-	load_file_to_memory(argv[1], instructions, INSTRUCTION_COUNT);
-	if (argc == 4)
-		load_file_to_memory(argv[2], data, DATA_COUNT);
+    if (argc == 4)
+        load_file_to_memory(argv[3], [&](size_t index, uint16_t val) {
+            hd.data[index] = bit_cast<int16_t>(val);
+        });
 
 	// simulate
-	Hardware hd(instructions, data);
-	hd.reset();
 	while (!hd.is_finished())
 		hd.execute_next();
+
 	// to print "end"
 	hd.execute_next();
 
 	cerr << "Flushing output to a dump file..." << endl;
+
 	// dump
 	ofstream output{ argv[argc - 1] };
 	hd.print_data(output);
 	output.close();
 
 	cerr << "Flushing output done..." << endl;
-
-	// unallocate
-	delete[] instructions;
-	delete[] data;
 	return 0;
 }
