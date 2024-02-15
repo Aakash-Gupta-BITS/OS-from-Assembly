@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{eec30b62-e870-4bc1-ab55-e028f7f60863}</ItemsProjectGuid>
+    <ItemsProjectName>Helpers</ItemsProjectName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)checks.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)constexpr_stream.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)constexpr_stream.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)enum_extensions.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)enum_extensions.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)helpers.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)variant_extensions.ixx" />
+  </ItemGroup>
+</Project>

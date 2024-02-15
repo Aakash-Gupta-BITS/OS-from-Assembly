@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{22a4c2ae-e022-46fd-ae12-d388f61640c3}</ItemsProjectGuid>
+    <ItemsProjectName>Compiler Engine</ItemsProjectName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ast.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ast_logic.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ast_structures.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)compiler.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)dfa_logic.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)lexer.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)lexer_logic.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)lexer_structures.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)parser.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)parser_logic.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)parse_table_logic.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)parser_structures.ixx" />
+  </ItemGroup>
+</Project>

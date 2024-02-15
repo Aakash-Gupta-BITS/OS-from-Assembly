@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)parser_structures.ixx">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)dfa_logic.ixx">
+      <Filter>Lexer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)lexer_logic.ixx">
+      <Filter>Lexer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)lexer_structures.ixx">
+      <Filter>Lexer</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)lexer.ixx">
+      <Filter>Exports</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)compiler.ixx">
+      <Filter>Exports</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)parser.ixx">
+      <Filter>Exports</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)parse_table_logic.ixx">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)parser_logic.ixx">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ast_structures.ixx">
+      <Filter>AST</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ast.ixx">
+      <Filter>Exports</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ast_logic.ixx">
+      <Filter>AST</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Lexer">
+      <UniqueIdentifier>{83d160be-b153-4137-814c-08dff38171cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Parser">
+      <UniqueIdentifier>{b427dde8-66ae-4621-92eb-6559b7f12cb9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Exports">
+      <UniqueIdentifier>{a14c5db0-f0fb-44d2-940a-ee6ac58d9554}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AST">
+      <UniqueIdentifier>{3b0c28cb-c761-4214-978a-c2d873647ae7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
