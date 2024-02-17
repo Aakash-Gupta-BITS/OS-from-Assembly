@@ -58,6 +58,7 @@
   <ImportGroup Label="Shared">
     <Import Project="..\CompilerEngine\CompilerEngine.vcxitems" Label="Shared" />
     <Import Project="..\Helpers\Helpers.vcxitems" Label="Shared" />
+    <Import Project="..\Jack\BinarySimulator.vcxitems" Label="Shared" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -108,6 +109,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <BuildStlModules>true</BuildStlModules>
+      <EnableModules>true</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -132,6 +134,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="OS From Assembly.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Update="C:\Users\Aakash\source\repos\OS from Assembly\Jack\utils.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="instructions.txt" />
+    <Text Include="memory_debug.txt" />
+    <Text Include="memory_input.txt" />
+    <Text Include="memory_output.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

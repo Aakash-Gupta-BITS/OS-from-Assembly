@@ -137,6 +137,25 @@ public:
 	}
 };
 
+export class null_ostream
+{
+public:
+	constexpr null_ostream& operator<<(auto t)
+	{
+		return *this;
+	}
+
+	constexpr auto str() const -> const std::string&
+	{
+		return "";
+	}
+
+	constexpr auto sv() const -> std::string_view
+	{
+		return "";
+	}
+};
+
 export class constexpr_iostream
 {
 	int start_index = -1;

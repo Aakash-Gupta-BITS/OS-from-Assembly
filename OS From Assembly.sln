@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Helpers", "Helpers\Helpers.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Compiler Engine", "CompilerEngine\CompilerEngine.vcxitems", "{22A4C2AE-E022-46FD-AE12-D388F61640C3}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jack", "Jack\BinarySimulator.vcxitems", "{47FCA3B1-9B81-4325-BBAA-6D73F985CD85}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -34,8 +36,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		CompilerEngine\CompilerEngine.vcxitems*{22a4c2ae-e022-46fd-ae12-d388f61640c3}*SharedItemsImports = 9
+		Jack\BinarySimulator.vcxitems*{47fca3b1-9b81-4325-bbaa-6d73f985cd85}*SharedItemsImports = 9
 		CompilerEngine\CompilerEngine.vcxitems*{71164c59-ab53-4ab4-ae34-67b15bd70dc3}*SharedItemsImports = 4
 		Helpers\Helpers.vcxitems*{71164c59-ab53-4ab4-ae34-67b15bd70dc3}*SharedItemsImports = 4
+		Jack\BinarySimulator.vcxitems*{71164c59-ab53-4ab4-ae34-67b15bd70dc3}*SharedItemsImports = 4
 		Helpers\Helpers.vcxitems*{eec30b62-e870-4bc1-ab55-e028f7f60863}*SharedItemsImports = 9
 	EndGlobalSection
 EndGlobal
