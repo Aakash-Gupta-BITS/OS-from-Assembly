@@ -16,7 +16,7 @@ namespace jack::simulator
 		std::uint16_t PC{};
 		std::array<std::int16_t, RAM_SIZE + SCREEN_SIZE + 1> ram{};
 		std::array<std::uint16_t, INSTRUCTION_COUNT> instructions{};
-		std::variant<null_ostream, constexpr_ostream> debug_stream{};
+		std::optional<constexpr_ostream> debug_stream{};
 	};
 
 	export constexpr void simulate(SimulatorConfig& config);

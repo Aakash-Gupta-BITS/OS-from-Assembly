@@ -234,27 +234,27 @@ namespace jack::simulator
 	{
 		auto&[D, A, PC, ram, instructions, debug_stream] = config;
 
-		std::visit([&](auto&& arg) {
-            arg << "________________________________________________________________________________\n";
-            arg << std::format("|{:<23}|{:^13}|{:^13}|{:^13}|{:^13}|\n", "Instruction (Executed)", "Register PC", "Register A", "Register D", "Memory[A]");
-            arg << "|-----------------------|-------------|-------------|-------------|-------------|\n";
-			}, debug_stream);
+        if (debug_stream.has_value())
+        {
+            debug_stream.value() << "________________________________________________________________________________\n";
+            debug_stream.value() << std::format("|{:<23}|{:^13}|{:^13}|{:^13}|{:^13}|\n", "Instruction (Executed)", "Register PC", "Register A", "Register D", "Memory[A]");
+            debug_stream.value() << "|-----------------------|-------------|-------------|-------------|-------------|\n";
+        }
 
 		while (config.PC != TERMINATION_PC_ADDRESS)
 		{
-			std::visit([&](auto&& arg) {
+            if (debug_stream.has_value())
+            {
                 if (A == std::bit_cast<int16_t>(TERMINATION_PC_ADDRESS))
-                    arg << std::format("|{:016b}{:<7}|{:^13}|{:^13}|{:^13}|{:^13}|\n", instructions[PC], "", PC, A, D, "-");
+                    debug_stream.value() << std::format("|{:016b}{:<7}|{:^13}|{:^13}|{:^13}|{:^13}|\n", instructions[PC], "", PC, A, D, "-");
                 else
-                    arg << std::format("|{:016b}{:<7}|{:^13}|{:^13}|{:^13}|{:^13}|\n", instructions[PC], "", PC, A, D, ram[A]);
-
-				}, debug_stream);
+                    debug_stream.value() << std::format("|{:016b}{:<7}|{:^13}|{:^13}|{:^13}|{:^13}|\n", instructions[PC], "", PC, A, D, ram[A]);
+            }
 
 			cpu_one_step(config);
 		}
 
-		std::visit([&](auto&& arg) {
-            arg << "|_______________________|_____________|_____________|_____________|_____________|\n";
-			}, debug_stream);
+        if (debug_stream.has_value())
+            debug_stream.value() << "|_______________________|_____________|_____________|_____________|_____________|\n";
 	}
 }
