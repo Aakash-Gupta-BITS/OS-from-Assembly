@@ -2,8 +2,26 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)utils.ixx" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)simulator.ixx" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)simulator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)jack.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)simulator.ixx">
+      <Filter>simulator</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)simulator.cpp">
+      <Filter>simulator</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)assembler.ixx">
+      <Filter>assembler</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)assembler.cpp">
+      <Filter>assembler</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="simulator">
+      <UniqueIdentifier>{41b67067-6e66-40aa-ba4e-8ceb6032d328}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="assembler">
+      <UniqueIdentifier>{581ce091-2ac1-4a80-a667-66fd992c4ced}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

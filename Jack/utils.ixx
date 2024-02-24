@@ -1,4 +1,4 @@
-export module jack:utils;
+export module jack.utils;
 import std;
 
 namespace fs = std::filesystem;

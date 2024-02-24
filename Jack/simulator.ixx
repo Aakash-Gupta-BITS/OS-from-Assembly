@@ -1,4 +1,4 @@
-export module jack:simulator;
+export module jack.simulator;
 import std;
 import helpers;
 

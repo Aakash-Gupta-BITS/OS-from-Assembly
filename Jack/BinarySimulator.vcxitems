@@ -15,6 +15,8 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)assembler.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)assembler.ixx" />
     <ClCompile Include="$(MSBuildThisFileDirectory)utils.ixx" />
     <ClCompile Include="$(MSBuildThisFileDirectory)jack.ixx" />
     <ClCompile Include="$(MSBuildThisFileDirectory)simulator.cpp" />

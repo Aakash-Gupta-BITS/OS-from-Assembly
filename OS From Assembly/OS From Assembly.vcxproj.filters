@@ -27,5 +27,8 @@
     <Text Include="memory_debug.txt">
       <Filter>Resource Files</Filter>
     </Text>
+    <Text Include="program.asm">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

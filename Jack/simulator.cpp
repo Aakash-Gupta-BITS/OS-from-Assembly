@@ -1,4 +1,4 @@
-module jack:simulator;
+module jack.simulator;
 
 
 // Make sure we are using 2's complement representation.
@@ -11,7 +11,7 @@ static_assert(false, "The system encoding is one’s complement. This program only
 static_assert(false, "The system encoding is not possible in C standard. This program only compiles on two's complement system.");
 #endif
 
-import :utils;
+import jack.utils;
 import std;
 
 using std::int8_t;
