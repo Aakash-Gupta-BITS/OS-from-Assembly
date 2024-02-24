@@ -16,7 +16,14 @@ int main(int argc, char** argv)
 
     std::string s = buffer.str();
 
-    jack::assembler::generate_binary(s);
+    auto [binary, errors] = jack::assembler::generate_binary(s);
+
+
+    fs::path bin_path = fs::current_path() / "program.out";
+
+    std::ofstream ofile(bin_path);
+    for (auto& x : binary)
+        ofile << std::bitset<16>(x) << endl;
 
     return 0;
 }

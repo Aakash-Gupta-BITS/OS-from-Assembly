@@ -40,6 +40,12 @@ public:
 			return *this;
 		}
 
+		if (i == 0)
+		{
+			output += '0';
+			return *this;
+		}
+
 		if (i < 0)
 		{
 			output += "-";
@@ -62,6 +68,13 @@ public:
 	constexpr constexpr_ostream& operator<<(std::unsigned_integral auto i)
 	{
 		std::string digits{};
+		
+		if (i == 0)
+		{
+			output += '0';
+			return *this;
+		}
+
 		while (i)
 		{
 			const auto digit = i % 10;
