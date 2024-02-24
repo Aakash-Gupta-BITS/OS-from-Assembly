@@ -460,7 +460,7 @@ constexpr auto jack::assembler::generate_binary(std::string_view file_content) -
 				continue;
 			}
 
-            symbols.push_back({ line_tokens[1].lexeme, (std::uint16_t)(line_number + 1) });
+            symbols.push_back({ line_tokens[1].lexeme, (std::uint16_t)(line_number) });
 			continue;
         }
     }
