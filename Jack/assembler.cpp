@@ -1,6 +1,7 @@
 module jack.assembler;
 import compiler;
 import std;
+
 using namespace std;
 
 namespace
@@ -154,7 +155,7 @@ namespace
         {
             return std::make_unique<LexerToken>(*this);
         }
-        /*
+        
         template <typename T>
         friend constexpr T& operator<<(T& out, const LexerToken& tk)
         {
@@ -166,7 +167,7 @@ namespace
                 << ", lexeme : "
                 << tk.lexeme 
                 << " }";
-        }*/
+        }
     };
 
     using ASTType = ASTNode<LexerTypes<LexerToken>, NonTerminal>;
@@ -421,7 +422,7 @@ namespace
     }
 }
 
-constexpr auto jack::assembler::generate_binary(std::string_view file_content) -> std::pair<std::vector<std::uint16_t>, constexpr_ostream>
+constexpr auto jack::assembler::generate_binary(std::string_view file_content) -> std::expected<std::vector<std::uint16_t>, std::string>
 {
     const auto tokens = get_tokens(file_content);
 
@@ -469,7 +470,7 @@ constexpr auto jack::assembler::generate_binary(std::string_view file_content) -
     constexpr std::uint16_t nop = 0xFFFF;
 
     if (!errors.sv().empty())
-        return std::make_pair(binary, errors);
+        return std::unexpected(std::move(errors.str()));
 
     for (const auto& ast : root->descendants)
     {
@@ -683,7 +684,7 @@ constexpr auto jack::assembler::generate_binary(std::string_view file_content) -
     }
 
     if (!errors.sv().empty())
-        binary.clear();
+        return std::unexpected(std::move(errors.str()));
 
-    return std::make_pair(binary, errors);
+    return binary;
 }

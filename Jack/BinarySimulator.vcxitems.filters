@@ -15,6 +15,15 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)assembler.cpp">
       <Filter>assembler</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)vm_frontend.ixx">
+      <Filter>vm</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)vm.ixx">
+      <Filter>vm</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)vm_frontend.cpp">
+      <Filter>vm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="simulator">
@@ -22,6 +31,9 @@
     </Filter>
     <Filter Include="assembler">
       <UniqueIdentifier>{581ce091-2ac1-4a80-a667-66fd992c4ced}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vm">
+      <UniqueIdentifier>{f89ddc04-da92-4d90-abac-f60486c8bcb6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

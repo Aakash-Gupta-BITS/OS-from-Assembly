@@ -21,5 +21,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)jack.ixx" />
     <ClCompile Include="$(MSBuildThisFileDirectory)simulator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)simulator.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)vm.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)vm_frontend.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)vm_frontend.ixx" />
   </ItemGroup>
 </Project>

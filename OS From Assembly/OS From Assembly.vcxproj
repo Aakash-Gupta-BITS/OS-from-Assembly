@@ -110,6 +110,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <BuildStlModules>true</BuildStlModules>
       <EnableModules>false</EnableModules>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,7 +142,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="instructions.txt" />
+    <Text Include="instructions.out" />
     <Text Include="memory_debug.txt" />
     <Text Include="memory_input.txt" />
     <Text Include="memory_output.txt" />
@@ -151,6 +152,7 @@
     <None Update="C:\Users\Aakash\source\repos\OS From Assembly\Jack\assembler.ixx">
       <FileType>Document</FileType>
     </None>
+    <None Include="program.vm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
