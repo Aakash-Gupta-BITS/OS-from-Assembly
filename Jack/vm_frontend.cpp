@@ -95,6 +95,86 @@ namespace
                 };
             }, []() { return lxr; });
     }
+
+    auto op_to_ast(auto parse_ptr) -> std::unique_ptr<ASTNode<LexerTypes<LexerToken>, NonTerminal>>
+    {
+        using ParseNodeType = decltype(parse_ptr)::element_type;
+        using ASTType = ASTNode<LexerTypes<LexerToken>, NonTerminal>;
+
+        const auto& descendants = parse_ptr->descendants;
+        const auto& descendant_token_to_ast = [&](std::size_t index) { return std::make_unique<ASTType>(parse_ptr->extract_child_leaf(index)); };
+        const auto& descendant_nt = [&](std::size_t index) { return parse_ptr->extract_child_node(index); };
+        const auto& is_descendant_token = [&](std::size_t index) { return std::holds_alternative<ParseNodeType::LeafType>(descendants[index]); };
+
+        if (descendants.size() == 3)
+        {
+            // op -> TK_CALL TK_SYMBOL TK_NUM
+            auto ast_token = descendant_token_to_ast(0);
+            ast_token->descendants.emplace_back(descendant_token_to_ast(1));
+            ast_token->descendants.emplace_back(descendant_token_to_ast(2));
+            return ast_token;
+        }
+
+        // op -> segment
+        // op -> alu_op
+        // op -> branch
+        // op -> TK_RETURN
+
+        if (is_descendant_token(0))
+			return descendant_token_to_ast(0);
+
+        auto descendant = descendant_nt(0);
+        if (descendant->node_type == NonTerminal::segment)
+        {
+            // segment -> stack_op_name seg_name TK_NUM
+            // stack_op_name -> TK_POP
+            // stack_op_name -> TK_PUSH
+            // seg_name -> TK_LOCAL
+            // seg_name -> TK_ARGUMENT
+            // seg_name -> TK_STATIC
+            // seg_name -> TK_CONSTANT
+            // seg_name -> TK_THIS
+            // seg_name -> TK_THAT
+            // seg_name -> TK_POINTER
+            // seg_name -> TK_TEMP
+
+            auto ast_token = std::make_unique<ASTType>(descendant->extract_child_node(0)->extract_child_leaf(0));
+            ast_token->descendants.emplace_back(std::make_unique<ASTType>(descendant->extract_child_node(1)->extract_child_leaf(0)));
+            ast_token->descendants.emplace_back(std::make_unique<ASTType>(descendant->extract_child_leaf(2)));
+			return ast_token;
+		}
+
+        if (descendant->node_type == NonTerminal::alu_op)
+        {
+            // alu_op -> arithmetic
+            // alu_op -> logical
+            // alu_op -> boolean
+            // arithmetic -> TK_ADD
+            // arithmetic -> TK_SUB
+            // arithmetic -> TK_NEG
+            // logical -> TK_EQ
+            // logical -> TK_GT
+            // logical -> TK_LT
+            // boolean -> TK_AND
+            // boolean -> TK_OR
+            // boolean -> TK_NOT
+
+            return std::make_unique<ASTType>(descendant->extract_child_node(0)->extract_child_leaf(0));
+        }
+
+        if (descendant->node_type == NonTerminal::branch)
+        {
+            // branch -> TK_LABEL TK_SYMBOL
+            // branch -> TK_GOTO TK_SYMBOL
+            // branch -> TK_IF TK_MINUS TK_GOTO TK_SYMBOL
+            auto& branch = descendant;
+            auto ast_token = std::make_unique<ASTType>(branch->extract_child_leaf(0));
+            ast_token->descendants.emplace_back(std::make_unique<ASTType>(branch->extract_child_leaf(branch->descendants.size() - 1)));
+            return ast_token;
+		}
+
+        std::unreachable();
+    }
 }
 
 constexpr void LexerToken::after_construction(const LexerToken& previous_token)
@@ -177,14 +257,109 @@ constexpr void LexerToken::after_construction(const LexerToken& previous_token)
 
 std::map<std::string_view, Terminal> LexerToken::terminal_map;
 
-auto jack::vm::get_ast(std::string_view vm_file_content) -> std::expected<ASTNode<LexerTypes<LexerToken>, NonTerminal>, std::string>
+auto jack::vm::get_ast(std::string_view vm_file_content) -> std::expected<std::unique_ptr<ASTNode<LexerTypes<LexerToken>, NonTerminal>>, std::string>
 {
     constexpr auto parser = get_parser();
+
     auto result = parser(vm_file_content);
 
     if (!result.errors.empty())
         return std::unexpected(result.errors);
+    
+    using ParseNodeType = decltype(result.root)::element_type;
+    using ASTType = ASTNode<LexerTypes<LexerToken>, NonTerminal>;
 
+    // Tail recursive AST construction
+    auto parse_ptr = std::move(result.root);
+    auto ast_root = std::make_unique<ASTType>(NonTerminal::start);
+    auto ast_ptr = ast_root.get();
 
-    return ASTNode<LexerTypes<LexerToken>, NonTerminal>(Terminal::TK_ADD);
+    while (parse_ptr != nullptr)
+    {
+        const auto& node_type = parse_ptr->node_type;
+        const auto& descendants = parse_ptr->descendants;
+        const auto& descendant_size = parse_ptr->descendants.size();
+        const auto& descendant_token_to_ast = [&](std::size_t index) { return std::make_unique<ASTType>(parse_ptr->extract_child_leaf(index)); };
+        const auto& is_descendant_token = [&](std::size_t index) { return std::holds_alternative<ParseNodeType::LeafType>(descendants[index]); };
+
+        if (node_type == NonTerminal::start)
+        {
+            // start -> TK_FUNCTION TK_SYMBOL TK_NUM func_start
+            // start -> TK_NEWLINE start
+            // start -> TK_EOF
+
+            if (descendant_size == 1)
+                break;
+
+            if (descendant_size == 2)
+                goto LAST_AND_CONTINUE;
+
+            ast_root->descendants.emplace_back(descendant_token_to_ast(0));
+            ast_ptr = ast_root->descendants.back().get();
+            ast_ptr->descendants.emplace_back(descendant_token_to_ast(1));
+            ast_ptr->descendants.emplace_back(descendant_token_to_ast(2));
+            ast_ptr->descendants.emplace_back(std::make_unique<ASTType>(NonTerminal::func_start));
+            ast_ptr = ast_ptr->descendants.back().get();
+            goto LAST_AND_CONTINUE;
+        }
+
+        if (node_type == NonTerminal::func_start)
+        {
+			// func_start -> TK_NEWLINE line_start
+			// func_start -> TK_EOF
+			if (descendant_size == 1)
+				break;
+
+			goto LAST_AND_CONTINUE;
+		}
+
+        if (node_type == NonTerminal::line_start)
+        {
+            // line_start -> op line_end
+			// line_start -> TK_NEWLINE line_start
+			// line_start -> TK_FUNCTION TK_SYMBOL TK_NUM func_start
+			// line_start -> TK_EOF
+
+			if (descendant_size == 1)
+				break;
+
+            if (descendant_size == 2)
+            {
+                if (is_descendant_token(0))
+                    goto LAST_AND_CONTINUE;
+
+                // Process operation here
+                ast_ptr->descendants.emplace_back(op_to_ast(parse_ptr->extract_child_node(0)));
+                goto LAST_AND_CONTINUE;
+            }
+
+            ast_root->descendants.emplace_back(descendant_token_to_ast(0));
+            ast_ptr = ast_root->descendants.back().get();
+            ast_ptr->descendants.emplace_back(descendant_token_to_ast(1));
+            ast_ptr->descendants.emplace_back(descendant_token_to_ast(2));
+            ast_ptr->descendants.emplace_back(std::make_unique<ASTType>(NonTerminal::func_start));
+            ast_ptr = ast_ptr->descendants.back().get();
+            goto LAST_AND_CONTINUE;
+        }
+
+        if (node_type == NonTerminal::line_end)
+        {
+			// line_end -> TK_EOF
+			// line_end -> TK_NEWLINE line_start
+
+			if (descendant_size == 1)
+				break;
+
+			goto LAST_AND_CONTINUE;
+        }
+
+        std::unreachable();
+
+    LAST_AND_CONTINUE:
+        parse_ptr = std::move(parse_ptr->extract_child_node(parse_ptr->descendants.size() - 1));
+    }
+
+    std::cout << *ast_root << '\n';
+
+    return ast_root;
 }

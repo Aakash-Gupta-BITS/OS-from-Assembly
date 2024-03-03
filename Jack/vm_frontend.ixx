@@ -92,5 +92,5 @@ struct LexerToken
 
 namespace jack::vm
 {
-    export auto get_ast(std::string_view vm_file_content) -> std::expected<ASTNode<LexerTypes<LexerToken>, NonTerminal>, std::string>;
+    export auto get_ast(std::string_view vm_file_content) -> std::expected<std::unique_ptr<ASTNode<LexerTypes<LexerToken>, NonTerminal>>, std::string>;
 }

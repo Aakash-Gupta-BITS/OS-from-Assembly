@@ -38,12 +38,12 @@ struct ParseTreeNode
 
     std::vector<std::variant<LeafType, InternalNodeType>> descendants{};
 
-    constexpr inline auto extract_child_leaf(int index)
+    constexpr inline auto extract_child_leaf(std::size_t index)
     {
         return std::move(std::get<LeafType>(descendants[index]));
     }
 
-    constexpr inline auto extract_child_node(int index)
+    constexpr inline auto extract_child_node(std::size_t index)
     {
         return std::move(std::get<InternalNodeType>(descendants[index]));
     }

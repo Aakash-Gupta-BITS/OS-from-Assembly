@@ -14,8 +14,8 @@ struct ASTNode
     using InternalNodeType = std::unique_ptr<ParseTreeNode<LexerTypes, ENonTerminal>>;
     using LeafType = std::unique_ptr<ILexerToken>;
 
-    std::variant<ETerminal, ENonTerminal> node_symbol_type{};
-    LeafType lexer_token{};
+    const std::variant<ETerminal, ENonTerminal> node_symbol_type{};
+    const LeafType lexer_token{};
     std::vector<std::unique_ptr<ASTNode>> descendants{};
 
     constexpr ASTNode(std::variant<ETerminal, ENonTerminal> node_symbol_type)
@@ -30,14 +30,6 @@ struct ASTNode
     {
 
     }
-
-    constexpr ASTNode(ASTNode&& other) noexcept
-		: node_symbol_type{ other.node_symbol_type },
-		descendants{ std::move(other.descendants) },
-        lexer_token{ std::move(other.lexer_token) }
-	{
-
-	}
 
     template<typename ostream>
     constexpr friend ostream& operator<<(ostream& os, const ASTNode& node)
