@@ -359,7 +359,5 @@ auto jack::vm::get_ast(std::string_view vm_file_content) -> std::expected<std::u
         parse_ptr = std::move(parse_ptr->extract_child_node(parse_ptr->descendants.size() - 1));
     }
 
-    std::cout << *ast_root << '\n';
-
     return ast_root;
 }

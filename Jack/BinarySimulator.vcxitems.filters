@@ -24,6 +24,12 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)vm_frontend.cpp">
       <Filter>vm</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)vm_backend.ixx">
+      <Filter>vm</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)vm_backend.cpp">
+      <Filter>vm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="simulator">

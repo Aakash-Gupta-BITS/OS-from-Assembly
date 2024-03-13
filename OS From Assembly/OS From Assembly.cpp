@@ -13,8 +13,10 @@ int main(int argc, char** argv)
     std::ifstream file(path);
     std::stringstream buffer;
     buffer << file.rdbuf();
+    auto file_content = buffer.str();
 
-    jack::vm::get_ast(buffer.str());
+    auto ast = jack::vm::get_ast(file_content);
+    cout << jack::vm::generate_assembly(std::move(ast.value())).error();
 
     return 0;
 }

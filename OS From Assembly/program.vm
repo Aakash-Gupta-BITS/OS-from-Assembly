@@ -1,4 +1,4 @@
-function mult 2
+function Main.main 0
     push constant 0
     pop local 0
     push constant 1
