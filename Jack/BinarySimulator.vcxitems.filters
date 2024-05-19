@@ -30,6 +30,15 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)vm_backend.cpp">
       <Filter>vm</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)jack_compiler.ixx">
+      <Filter>jack_compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)compiler_frontend.ixx">
+      <Filter>jack_compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)compiler_frontend.cpp">
+      <Filter>jack_compiler</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="simulator">
@@ -40,6 +49,9 @@
     </Filter>
     <Filter Include="vm">
       <UniqueIdentifier>{f89ddc04-da92-4d90-abac-f60486c8bcb6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jack_compiler">
+      <UniqueIdentifier>{7071c5f2-8991-4c65-b02b-9de5293860ff}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

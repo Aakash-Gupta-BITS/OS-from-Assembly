@@ -215,10 +215,11 @@ public:
 		else
 			clog << "Parser: Parsing complete\n";
 
-		ParserOutput output;
-		output.errors = cerr.sv();
-		output.logs = clog.sv();
-		output.root = std::move(stack.get_root());
+		ParserOutput output{
+			.root = std::move(stack.get_root()),
+			.logs = std::string(clog.sv()),
+			.errors = std::string(cerr.sv())
+		};
 
 		return output;
 	}

@@ -4,36 +4,36 @@ import std;
 
 namespace
 {
-    constexpr auto get_lexer()
+    consteval auto get_lexer()
     {
         using enum Terminal;
 
         constexpr auto transitions = []()
+        {
+            return std::array
             {
-                return std::array
-                {
-                    TransitionInfo{0, 1, "-"},
-                    TransitionInfo{0, 2, "0123456789"},
-                    TransitionInfo{2, 2, "0123456789"},
-                    TransitionInfo{0, 3, "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_.$:"},
-                    TransitionInfo{3, 3, "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_.$:0123456789"},
-                    TransitionInfo{0, 4, " \t\r "},
-                    TransitionInfo{4, 4, " \t\r "},
-                    TransitionInfo{0, 5, "\n"}
-                };
+                TransitionInfo{0, 1, "-"},
+                TransitionInfo{0, 2, "0123456789"},
+                TransitionInfo{2, 2, "0123456789"},
+                TransitionInfo{0, 3, "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_.$:"},
+                TransitionInfo{3, 3, "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM_.$:0123456789"},
+                TransitionInfo{0, 4, " \t\r "},
+                TransitionInfo{4, 4, " \t\r "},
+                TransitionInfo{0, 5, "\n"}
             };
+        };
 
         constexpr auto final_states = []()
+        {
+            return std::array
             {
-                return std::array
-                {
-                    FinalStateInfo{1, TK_MINUS},
-                    FinalStateInfo{2, TK_NUM},
-                    FinalStateInfo{3, TK_SYMBOL},
-                    FinalStateInfo{4, TK_WHITESPACE},
-                    FinalStateInfo{5, TK_NEWLINE}
-                };
+                FinalStateInfo{1, TK_MINUS},
+                FinalStateInfo{2, TK_NUM},
+                FinalStateInfo{3, TK_SYMBOL},
+                FinalStateInfo{4, TK_WHITESPACE},
+                FinalStateInfo{5, TK_NEWLINE}
             };
+        };
 
         return build_lexer<LexerTypes<LexerToken>>(transitions, final_states);
     }
@@ -47,53 +47,53 @@ namespace
         constexpr auto lxr = get_lexer();
 
         return build_parser([]()
+        {
+            return std::array
             {
-                return std::array
-                {
-                    PI(start, TK_FUNCTION, TK_SYMBOL, TK_NUM, func_start),
-                    PI(start, TK_NEWLINE, start),
-                    PI(start, TK_EOF),
-                    PI(func_start, TK_NEWLINE, line_start),
-                    PI(func_start, TK_EOF),
-                    PI(line_start, op, line_end),
-                    PI(line_start, TK_NEWLINE, line_start),
-                    PI(line_start, TK_FUNCTION, TK_SYMBOL, TK_NUM, func_start),
-                    PI(line_start, TK_EOF),
-                    PI(line_end, TK_EOF),
-                    PI(line_end, TK_NEWLINE, line_start),
-                    PI(op, segment),
-                    PI(op, alu_op),
-                    PI(op, branch),
-                    PI(op, TK_RETURN),
-                    PI(op, TK_CALL, TK_SYMBOL, TK_NUM),
-                    PI(segment, stack_op_name, seg_name, TK_NUM),
-                    PI(stack_op_name, TK_POP),
-                    PI(stack_op_name, TK_PUSH),
-                    PI(seg_name, TK_LOCAL),
-                    PI(seg_name, TK_ARGUMENT),
-                    PI(seg_name, TK_STATIC),
-                    PI(seg_name, TK_CONSTANT),
-                    PI(seg_name, TK_THIS),
-                    PI(seg_name, TK_THAT),
-                    PI(seg_name, TK_POINTER),
-                    PI(seg_name, TK_TEMP),
-                    PI(alu_op, arithmetic),
-                    PI(alu_op, logical),
-                    PI(alu_op, boolean),
-                    PI(arithmetic, TK_ADD),
-                    PI(arithmetic, TK_SUB),
-                    PI(arithmetic, TK_NEG),
-                    PI(logical, TK_EQ),
-                    PI(logical, TK_GT),
-                    PI(logical, TK_LT),
-                    PI(boolean, TK_AND),
-                    PI(boolean, TK_OR),
-                    PI(boolean, TK_NOT),
-                    PI(branch, TK_LABEL, TK_SYMBOL),
-                    PI(branch, TK_GOTO, TK_SYMBOL),
-                    PI(branch, TK_IF, TK_MINUS, TK_GOTO, TK_SYMBOL)
-                };
-            }, []() { return lxr; });
+                PI(start, TK_FUNCTION, TK_SYMBOL, TK_NUM, func_start),
+                PI(start, TK_NEWLINE, start),
+                PI(start, TK_EOF),
+                PI(func_start, TK_NEWLINE, line_start),
+                PI(func_start, TK_EOF),
+                PI(line_start, op, line_end),
+                PI(line_start, TK_NEWLINE, line_start),
+                PI(line_start, TK_FUNCTION, TK_SYMBOL, TK_NUM, func_start),
+                PI(line_start, TK_EOF),
+                PI(line_end, TK_EOF),
+                PI(line_end, TK_NEWLINE, line_start),
+                PI(op, segment),
+                PI(op, alu_op),
+                PI(op, branch),
+                PI(op, TK_RETURN),
+                PI(op, TK_CALL, TK_SYMBOL, TK_NUM),
+                PI(segment, stack_op_name, seg_name, TK_NUM),
+                PI(stack_op_name, TK_POP),
+                PI(stack_op_name, TK_PUSH),
+                PI(seg_name, TK_LOCAL),
+                PI(seg_name, TK_ARGUMENT),
+                PI(seg_name, TK_STATIC),
+                PI(seg_name, TK_CONSTANT),
+                PI(seg_name, TK_THIS),
+                PI(seg_name, TK_THAT),
+                PI(seg_name, TK_POINTER),
+                PI(seg_name, TK_TEMP),
+                PI(alu_op, arithmetic),
+                PI(alu_op, logical),
+                PI(alu_op, boolean),
+                PI(arithmetic, TK_ADD),
+                PI(arithmetic, TK_SUB),
+                PI(arithmetic, TK_NEG),
+                PI(logical, TK_EQ),
+                PI(logical, TK_GT),
+                PI(logical, TK_LT),
+                PI(boolean, TK_AND),
+                PI(boolean, TK_OR),
+                PI(boolean, TK_NOT),
+                PI(branch, TK_LABEL, TK_SYMBOL),
+                PI(branch, TK_GOTO, TK_SYMBOL),
+                PI(branch, TK_IF, TK_MINUS, TK_GOTO, TK_SYMBOL)
+            };
+        }, []() { return lxr; });
     }
 
     auto op_to_ast(auto parse_ptr) -> std::unique_ptr<ASTNode<LexerTypes<LexerToken>, NonTerminal>>
@@ -250,8 +250,7 @@ constexpr void LexerToken::after_construction(const LexerToken& previous_token)
         for (int i = 0; i < keywords.size(); ++i)
             terminal_map[keywords[i]] = keyword_types[i];
 
-    auto it = terminal_map.find(lexeme);
-    if (it != terminal_map.end())
+    if (auto it = terminal_map.find(lexeme); it != terminal_map.end())
         type = it->second;
 }
 

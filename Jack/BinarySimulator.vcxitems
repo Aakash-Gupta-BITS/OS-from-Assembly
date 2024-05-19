@@ -17,6 +17,9 @@
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)assembler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)assembler.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)compiler_frontend.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)compiler_frontend.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)jack_compiler.ixx" />
     <ClCompile Include="$(MSBuildThisFileDirectory)utils.ixx" />
     <ClCompile Include="$(MSBuildThisFileDirectory)jack.ixx" />
     <ClCompile Include="$(MSBuildThisFileDirectory)simulator.cpp" />

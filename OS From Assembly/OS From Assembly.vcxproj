@@ -211,6 +211,7 @@
     <None Update="C:\Users\Aakash\source\repos\OS From Assembly\Jack\assembler.ixx">
       <FileType>Document</FileType>
     </None>
+    <None Include="program.jack" />
     <None Include="program.vm" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
