@@ -31,6 +31,12 @@ struct ASTNode
 
     }
 
+    constexpr ASTNode(std::variant<ETerminal, ENonTerminal> node_symbol_type, LeafType lexer_token) :
+        node_symbol_type{ node_symbol_type }, lexer_token{ std::move(lexer_token) }
+    {
+
+    }
+
     template<typename ostream>
     constexpr friend ostream& operator<<(ostream& os, const ASTNode& node)
     {

@@ -178,6 +178,167 @@ namespace
 			};
 		}, [] { return lexer; });
 	}
+
+
+	auto compile_ast(auto parse_ptr, std::unique_ptr<ASTNode<LexerTypes<LexerToken>, NonTerminal>> inherited) -> decltype(inherited)
+	{
+		using ParseNodeType = decltype(parse_ptr)::element_type;
+		using ASTType = decltype(inherited)::element_type;
+
+		const auto& descendant_token = [&](std::size_t index) { return parse_ptr->extract_child_leaf(index); };
+		const auto& descendant_nt = [&](std::size_t index) { return parse_ptr->extract_child_node(index); };
+		const auto& descendant_token_to_ast = [&](std::size_t index) { return std::make_unique<ASTType>(descendant_token(index)); };
+		const auto& is_descendant_token = [&](std::size_t index) { return std::holds_alternative<ParseNodeType::LeafType>(parse_ptr->descendants[index]); };
+		const auto& descendant_count = [&]() { return parse_ptr->descendants.size(); };
+
+		if (parse_ptr == nullptr) std::terminate();
+
+		const NonTerminal& node_type = parse_ptr->node_type;
+
+		if (node_type == NonTerminal::start) 
+		{
+			auto ast = std::make_unique<ASTType>(NonTerminal::start);
+			ast->descendants.push_back(compile_ast(descendant_nt(0), {}));
+			return ast;
+		}
+		else if (node_type == NonTerminal::_class)
+		{
+			// class => TK_CLASS TK_IDENTIFIER TK_CURO class_vars subroutineDecs TK_CURC TK_EOF
+			auto ast = std::make_unique<ASTType>(NonTerminal::_class, descendant_token(1));
+			ast->descendants.push_back(compile_ast(descendant_nt(3), {}));
+			ast->descendants.push_back(compile_ast(descendant_nt(4), {}));
+			return ast;
+		}
+		else if (node_type == NonTerminal::class_vars)
+		{
+			// class_vars => class_var class_vars
+			// class_vars => eps
+			if (descendant_count() == 0)
+				return inherited;
+
+			if (inherited == nullptr)
+				inherited = std::make_unique<ASTType>(NonTerminal::class_vars);
+
+			inherited->descendants.push_back(compile_ast(descendant_nt(0), {}));
+			return compile_ast(descendant_nt(1), std::move(inherited));
+		}
+		else if (node_type == NonTerminal::subroutineDecs)
+		{
+			// subroutineDecs => subroutineDec subroutineDecs
+			// subroutineDecs => eps
+
+			if (descendant_count() == 0)
+				return inherited;
+
+			if (inherited == nullptr)
+				inherited = std::make_unique<ASTType>(NonTerminal::subroutineDecs);
+
+			inherited->descendants.push_back(compile_ast(descendant_nt(0), {}));
+			return compile_ast(descendant_nt(1), std::move(inherited));
+		}
+		else if (node_type == NonTerminal::class_var)
+		{
+			// class_var => class_var_prefix type TK_IDENTIFIER more_identifiers TK_SEMICOLON
+			auto ast = std::make_unique<ASTType>(NonTerminal::class_var);
+			ast->descendants.push_back(compile_ast(descendant_nt(0), {}));
+			ast->descendants.push_back(compile_ast(descendant_nt(1), {}));
+			ast->descendants.push_back(std::make_unique<ASTType>(descendant_token(2)));
+
+			auto more_ids = compile_ast(descendant_nt(3), {});
+			if (more_ids == nullptr)
+				return ast;
+
+			for (auto &desc: more_ids->descendants)
+				ast->descendants.push_back(std::move(desc));
+
+			return ast;
+		}
+		else if (node_type == NonTerminal::class_var_prefix)
+		{
+			// class_var_prefix => TK_STATIC
+			// class_var_prefix => TK_FIELD
+			return descendant_token_to_ast(0);
+		}
+		else if (node_type == NonTerminal::type)
+		{
+			// type => TK_INT
+			// type => TK_CHAR
+			// type => TK_BOOLEAN
+			// type => TK_IDENTIFIER
+			return descendant_token_to_ast(0);
+		}
+		else if (node_type == NonTerminal::more_identifiers)
+		{
+			// more_identifiers => TK_COMMA TK_IDENTIFIER more_identifiers
+			// more_identifiers => eps
+			if (descendant_count() == 0)
+				return inherited;
+
+			if (inherited == nullptr)
+				inherited = std::make_unique<ASTType>(NonTerminal::more_identifiers);
+
+			inherited->descendants.push_back(descendant_token_to_ast(1));
+			return compile_ast(descendant_nt(2), std::move(inherited));
+		}
+		else if (node_type == NonTerminal::subroutineDec)
+		{
+			// subroutineDec => subroutine_prefix subroutine_type TK_IDENTIFIER TK_PARENO parameters TK_PARENC subroutine_body
+			auto ast = std::make_unique<ASTType>(compile_ast(descendant_nt(0), {})->node_symbol_type, descendant_token(2));
+			ast->descendants.push_back(compile_ast(descendant_nt(1), {}));
+			ast->descendants.push_back(compile_ast(descendant_nt(4), {}));
+			ast->descendants.push_back(compile_ast(descendant_nt(6), {}));
+			return ast;
+		}
+		else if (node_type == NonTerminal::subroutine_prefix)
+		{
+			// subroutine_prefix => TK_CONSTRUCTOR
+			// subroutine_prefix => TK_FUNCTION
+			// subroutine_prefix => TK_METHOD
+			return descendant_token_to_ast(0);
+		}
+		else if (node_type == NonTerminal::subroutine_type)
+		{
+			// subroutine_type => type
+			// subroutine_type => TK_VOID
+			if (is_descendant_token(0))
+				return descendant_token_to_ast(0);
+			return compile_ast(descendant_nt(0), {});
+		}
+		else if (node_type == NonTerminal::parameters)
+		{
+			// parameters => type TK_IDENTIFIER more_parameters
+			// parameters => eps
+			if (descendant_count() == 0)
+				return inherited;
+
+			if (inherited == nullptr)
+				inherited = std::make_unique<ASTType>(NonTerminal::parameters);
+
+			auto param = compile_ast(descendant_nt(0), {});
+			param->descendants.push_back(std::make_unique<ASTType>(descendant_token(1)));
+			inherited->descendants.push_back(std::move(param));
+			return compile_ast(descendant_nt(2), std::move(inherited));
+		}
+		else if (node_type == NonTerminal::more_parameters)
+		{
+			// more_parameters => TK_COMMA type TK_IDENTIFIER more_parameters
+			// more_parameters => eps
+
+			if (descendant_count() == 0)
+				return inherited;
+
+			auto param = compile_ast(descendant_nt(1), {});
+			param->descendants.push_back(std::make_unique<ASTType>(descendant_token(2)));
+			inherited->descendants.push_back(std::move(param));
+			return compile_ast(descendant_nt(3), std::move(inherited));
+		}
+		else if (node_type == NonTerminal::subroutine_body)
+		{
+			return {};
+		}
+
+		std::unreachable();
+	}
 }
 
 std::map<std::string_view, Terminal> LexerToken::keyword_map;
@@ -251,7 +412,7 @@ constexpr void LexerToken::after_construction(const LexerToken& previous_token)
 		type = it->second;
 }
 
-auto jack::compiler::get_ast(std::string_view file_content)->std::expected<std::unique_ptr<ASTNode<LexerTypes<LexerToken>, NonTerminal>>, std::string>
+auto jack::compiler::get_ast(std::string_view file_content) -> std::expected<std::unique_ptr<ASTNode<LexerTypes<LexerToken>, NonTerminal>>, std::string>
 {
 	constexpr auto parser = get_parser();
 	auto result = parser(file_content);
@@ -259,9 +420,5 @@ auto jack::compiler::get_ast(std::string_view file_content)->std::expected<std::
 	if (!result.errors.empty())
 		return std::unexpected(result.errors);
 
-	using ParseNodeType = decltype(result.root)::element_type;
-	using ASTType = ASTNode<LexerTypes<LexerToken>, NonTerminal>;
-
-
-	return std::unexpected("");
+	return compile_ast(std::move(result.root), {});
 }

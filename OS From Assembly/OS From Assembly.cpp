@@ -17,7 +17,7 @@ int main(int argc, char** argv)
     auto file_content = buffer.str();
 
     const auto ast = jack::compiler::get_ast(file_content);
-    //cout << **ast << endl;
+    cout << **ast << endl;
     //cout << *jack::vm::generate_assembly("program.vm", std::move(ast.value()));
 
     return 0;
