@@ -20,6 +20,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)constexpr_stream.ixx" />
     <ClCompile Include="$(MSBuildThisFileDirectory)enum_extensions.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)enum_extensions.ixx" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)generator.ixx" />
     <ClCompile Include="$(MSBuildThisFileDirectory)helpers.ixx" />
     <ClCompile Include="$(MSBuildThisFileDirectory)variant_extensions.ixx" />
   </ItemGroup>
