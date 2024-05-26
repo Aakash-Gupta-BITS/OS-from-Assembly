@@ -4,7 +4,137 @@ import helpers;
 
 using namespace jack::compiler;
 
-std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table(std::vector<std::unique_ptr<ASTNode<LexerTypes<LexerToken>, NonTerminal>>> class_asts)
+std::string LetStatement::get_out_str() const
+{
+	constexpr_ostream out;
+	out << "let " << variable_name;
+
+	if (index_expression != nullptr)
+		out << "[" << *index_expression << "]";
+	out << " = " << *expression << ";";
+	return out.str();
+}
+std::string ReturnStatement::get_out_str() const
+{
+	constexpr_ostream out;
+	out << "return";
+	if (expression != nullptr)
+		out << " " << *expression;
+	out << ";";
+	return out.str();
+}
+std::string DoStatement::get_out_str() const
+{
+	constexpr_ostream out;
+	out << "do ";
+	if (!prefix_name.empty())
+		out << prefix_name << ".";
+	out << method_name << "(";
+	for (auto it = arguments.begin(); it != arguments.end(); ++it)
+	{
+		out << **it;
+		if (it != arguments.end() - 1)
+			out << ", ";
+	}
+	out << ");";
+	return out.str();
+}
+std::string IfStatement::get_out_str() const
+{
+	constexpr_ostream out;
+	out << "if (" << *condition << ") {\n";
+	for (const auto& statement : if_body)
+		out << *statement << "\n";
+	out << "}";
+	if (!else_body.empty())
+	{
+		out << " else {\n";
+		for (const auto& statement : else_body)
+			out << *statement << "\n";
+		out << "}";
+	}
+	return out.str();
+}
+std::string WhileStatement::get_out_str() const
+{
+	constexpr_ostream out;
+	out << "while (" << *condition << ") {\n";
+	for (const auto& statement : body)
+		out << *statement << "\n";
+	out << "}";
+	return out.str();
+}
+
+std::unique_ptr<Statement> Statement::get_statement_from_ast(ASTType ast, const FunctionEntry* fn)
+{
+	switch (std::get<Terminal>(ast->node_symbol_type))
+	{
+	case Terminal::TK_LET:
+		return std::make_unique<LetStatement>(std::move(ast), fn);
+	case Terminal::TK_RETURN:
+		return std::make_unique<ReturnStatement>(std::move(ast), fn);
+	case Terminal::TK_DO:
+		return std::make_unique<DoStatement>(std::move(ast), fn);
+	case Terminal::TK_IF:
+		return std::make_unique<IfStatement>(std::move(ast), fn);
+	case Terminal::TK_WHILE:
+		return std::make_unique<WhileStatement>(std::move(ast), fn);
+	default:
+		std::unreachable();
+	}
+}
+
+LetStatement::LetStatement(ASTType ast, const FunctionEntry* fn) : Statement{ fn }
+{
+	this->variable_name = ast->descendants[0]->lexer_token->lexeme;
+	if (ast->descendants[0]->descendants[0] != nullptr)
+		this->index_expression = std::move(ast->descendants[0]->descendants[0]);
+	this->expression = std::move(ast->descendants[1]);
+}
+
+ReturnStatement::ReturnStatement(ASTType ast, const FunctionEntry* fn) : Statement{ fn }
+{
+	this->expression = std::move(ast->descendants[0]);
+}
+
+DoStatement::DoStatement(ASTType ast, const FunctionEntry* fn) : Statement{ fn }
+{
+	const auto& identifier1 = ast->descendants[0];
+	if (identifier1->descendants[0] == nullptr)
+	{
+		this->prefix_name = "";
+		this->method_name = identifier1->lexer_token->lexeme;
+	}
+	else
+	{
+		this->prefix_name = identifier1->lexer_token->lexeme;
+		this->method_name = identifier1->descendants[0]->lexer_token->lexeme;
+	}
+
+	for (auto it = ast->descendants.begin() + 1; it != ast->descendants.end(); ++it)
+		this->arguments.push_back(std::move(*it));
+}
+
+IfStatement::IfStatement(ASTType ast, const FunctionEntry* fn) : Statement{ fn }
+{
+	this->condition = std::move(ast->descendants[0]);
+	if (ast->descendants[1] != nullptr) 
+		for (auto it = ast->descendants[1]->descendants.begin(); it != ast->descendants[1]->descendants.end(); ++it)
+			this->if_body.push_back(Statement::get_statement_from_ast(std::move(*it), fn));
+
+	if (ast->descendants[2] != nullptr)
+		for (auto it = ast->descendants[2]->descendants.begin(); it != ast->descendants[2]->descendants.end(); ++it)
+			this->else_body.push_back(Statement::get_statement_from_ast(std::move(*it), fn));
+}
+
+WhileStatement::WhileStatement(ASTType ast, const FunctionEntry* fn) : Statement{ fn }
+{
+	this->condition = std::move(ast->descendants[0]);
+	for (auto it = ast->descendants[1]->descendants.begin(); it != ast->descendants[1]->descendants.end(); ++it)
+		this->body.push_back(Statement::get_statement_from_ast(std::move(*it), fn));
+}
+
+std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table(std::vector<ASTType> class_asts)
 {
 	auto table = std::make_unique<SymbolTable>();
 	constexpr_ostream error_logs;
@@ -109,6 +239,12 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 				else if (subroutine_return_type_name != "void")
 					func_entry->return_type = table->classes[subroutine_return_type_name].get();
 
+				if (subroutine_type == Terminal::TK_METHOD)
+				{
+					func_entry->parameters.push_back(VariableEntry("this", type.get(), param_index++));
+					func_entry->members["this"] = EFuncVariableType::PARAMETER;
+				}
+
 				if (params_ast != nullptr)
 				{
 					for (const auto& param : params_ast->descendants)
@@ -183,7 +319,9 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 					}
 				}
 
-				func_entry->statements = std::move(body_ast);
+				if (body_ast)
+					for (auto it = body_ast->descendants.begin(); it != body_ast->descendants.end(); ++it)
+						func_entry->statements.push_back(Statement::get_statement_from_ast(std::move(*it), func_entry.get()));
 
 				if (subroutine_type == Terminal::TK_CONSTRUCTOR)
 				{
