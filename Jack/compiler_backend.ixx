@@ -26,7 +26,7 @@ struct FunctionEntry;
 struct Type
 {
 	const std::string_view name{};
-	std::map<std::string_view, EMemberType> members{};
+	std::map<std::string_view, EMemberType> member_types{};
 	std::map<std::string_view, std::unique_ptr<VariableEntry>> field_variables{};
 	std::map<std::string_view, std::unique_ptr<VariableEntry>> static_variable{};
 	std::map<std::string_view, std::unique_ptr<FunctionEntry>> constructors{};
@@ -61,82 +61,17 @@ struct Statement
 {
 	const FunctionEntry* enclosing_function{};
 
-	static std::unique_ptr<Statement> get_statement_from_ast(ASTType, const FunctionEntry*);
-
 	Statement(const FunctionEntry* func) : enclosing_function(func) { }
 	virtual ~Statement() {};
 
 	template <typename T>
 	friend constexpr T& operator<<(T& out, const Statement& tk)
 	{
-		out << tk.get_out_str();
-		return out;
+		return out << tk.get_out_str();
 	}
 
 protected:
 	virtual std::string get_out_str() const = 0;
-};
-
-struct LetStatement : Statement
-{
-	std::string_view variable_name{};
-	ASTType index_expression{};			// in case of array type
-	ASTType expression{};
-	
-	LetStatement(ASTType, const FunctionEntry*);
-	virtual ~LetStatement() {};
-
-protected:
-	virtual std::string get_out_str() const override;
-};
-
-struct ReturnStatement : Statement
-{
-	ASTType expression{};
-	ReturnStatement(ASTType, const FunctionEntry*);
-	virtual ~ReturnStatement() {};
-
-protected:
-	virtual std::string get_out_str() const override;
-};
-
-struct DoStatement : Statement
-{
-	// either method_name() or prefix_name.method_name()
-	std::string_view prefix_name;
-	std::string_view method_name;
-	std::vector<ASTType> arguments{};
-
-	DoStatement(ASTType, const FunctionEntry*);
-	virtual ~DoStatement() {};
-
-protected:
-	virtual std::string get_out_str() const override;
-};
-
-struct IfStatement : Statement
-{
-	ASTType condition{};
-	std::vector<std::unique_ptr<Statement>> if_body;
-	std::vector<std::unique_ptr<Statement>> else_body;
-
-	IfStatement(ASTType, const FunctionEntry*);
-	virtual ~IfStatement() {};
-
-protected:
-	virtual std::string get_out_str() const override;
-};
-
-struct WhileStatement : Statement
-{
-	ASTType condition{};
-	std::vector<std::unique_ptr<Statement>> body;
-
-	WhileStatement(ASTType, const FunctionEntry*);
-	virtual ~WhileStatement() {};
-
-protected:
-	virtual std::string get_out_str() const override;
 };
 
 struct VariableEntry
@@ -160,9 +95,10 @@ struct FunctionEntry
 
 	std::optional<const Type*> return_type = std::nullopt;
 
-	std::vector<VariableEntry> parameters{};
-	std::vector<VariableEntry> locals{};
-	std::map<std::string_view, EFuncVariableType> members{};
+	std::vector<std::unique_ptr<VariableEntry>> parameters{};
+	std::vector<std::unique_ptr<VariableEntry>> locals{};
+	std::map<std::string_view, EFuncVariableType> member_types{};
+	std::map<std::string_view, const VariableEntry*> member_entry;
 
 	std::vector<std::unique_ptr<Statement>> statements{};
 
@@ -176,7 +112,7 @@ struct FunctionEntry
 		out << tk.enclosing_class_type->name << "." << tk.name << "(";
 		for (int i = 0; i < tk.parameters.size(); ++i)
 		{
-			out << tk.parameters[i];
+			out << *tk.parameters[i];
 			if (i != tk.parameters.size() - 1)
 				out << ", ";
 		}
@@ -184,7 +120,7 @@ struct FunctionEntry
 		out << ")\n\t{\n";
 
 		for (int i = 0; i < tk.locals.size(); ++i)
-			out << "\t\tvar " << tk.locals[i] << "\n";
+			out << "\t\tvar " << *tk.locals[i] << "\n";
 
 		for (const auto& stmt : tk.statements)
 			out << "\t\t" << *stmt << "\n";
