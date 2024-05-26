@@ -7,7 +7,8 @@ field Square Screen;
 
     // Increments the square size by 2.
     method void incSize(int a, int b) {
-        var char scd;/*
+        var char scd;
+        var int ad, fc;/*
             */
         if (((y + size) < 254) & ((x + size) < 510)) {
             do erase();

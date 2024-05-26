@@ -148,6 +148,11 @@ public:
 	{
 		return output;
 	}
+
+	constexpr bool has_data() const
+	{
+		return !output.empty();
+	}
 };
 
 export class null_ostream

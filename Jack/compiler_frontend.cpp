@@ -197,9 +197,8 @@ namespace
 
 		if (node_type == NonTerminal::start) 
 		{
-			auto ast = std::make_unique<ASTType>(NonTerminal::start);
-			ast->descendants.push_back(compile_ast(descendant_nt(0), {}));
-			return ast;
+			// start => _class
+			return compile_ast(descendant_nt(0), {});
 		}
 		else if (node_type == NonTerminal::_class)
 		{

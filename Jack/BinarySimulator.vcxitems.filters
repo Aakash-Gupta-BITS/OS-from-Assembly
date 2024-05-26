@@ -39,6 +39,12 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)compiler_frontend.cpp">
       <Filter>jack_compiler</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)compiler_backend.ixx">
+      <Filter>jack_compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)compiler_backend.cpp">
+      <Filter>jack_compiler</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="simulator">
