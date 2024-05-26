@@ -65,7 +65,7 @@ constexpr auto build_visitor(std::pair<ENonTerminal, Types> ...args)
 		if (x == 0)
 			throw std::runtime_error("Mapping of visitor not found for atleast one Non Terminal.");
 		else if (x > 1)
-			throw std::runtime_error("There exist atleas two mappings for single Non Terminal.");
+			throw std::runtime_error("There exist atleast two mappings for single Non Terminal.");
 	
 	return ASTVisitor<vtype, array_size> {
 		.m_visitors = m_visitors
