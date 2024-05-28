@@ -5,17 +5,17 @@ import :frontend;
 
 using ASTType = std::unique_ptr<ASTNode<LexerTypes<LexerToken>, NonTerminal>>;
 
-enum EMemberType
+enum EFunctionType
 {
-	FIELD,
-	STATIC,
 	CONSTRUCTOR,
 	FUNCTION,
 	METHOD
 };
 
-enum EFuncVariableType
+enum EVariableType
 {
+	FIELD,
+	STATIC,
 	PARAMETER,
 	LOCAL
 };
@@ -26,7 +26,7 @@ struct FunctionEntry;
 struct Type
 {
 	const std::string_view name{};
-	std::map<std::string_view, EMemberType> member_types{};
+	std::map<std::string_view, std::variant<std::any, EFunctionType, EVariableType>> member_types{};
 	std::map<std::string_view, std::unique_ptr<VariableEntry>> field_variables{};
 	std::map<std::string_view, std::unique_ptr<VariableEntry>> static_variable{};
 	std::map<std::string_view, std::unique_ptr<FunctionEntry>> constructors{};
@@ -76,6 +76,7 @@ protected:
 
 struct VariableEntry
 {
+	const EVariableType member_type{};
 	const std::string_view name{};
 	const Type* type{};
 	int index{};
@@ -90,6 +91,7 @@ struct VariableEntry
 
 struct FunctionEntry
 {
+	const EFunctionType member_type{};
 	const std::string_view name{};
 	const Type* enclosing_class_type{};
 
@@ -97,8 +99,8 @@ struct FunctionEntry
 
 	std::vector<std::unique_ptr<VariableEntry>> parameters{};
 	std::vector<std::unique_ptr<VariableEntry>> locals{};
-	std::map<std::string_view, EFuncVariableType> member_types{};
-	std::map<std::string_view, const VariableEntry*> member_entry;
+	std::map<std::string_view, EVariableType> fn_member_types{};
+	std::map<std::string_view, const VariableEntry*> fn_member_entry;
 
 	std::vector<std::unique_ptr<Statement>> statements{};
 

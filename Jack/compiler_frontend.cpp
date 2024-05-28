@@ -179,7 +179,6 @@ namespace
 		}, [] { return lexer; });
 	}
 
-
 	auto compile_ast(auto parse_ptr, std::unique_ptr<ASTNode<LexerTypes<LexerToken>, NonTerminal>> inherited) -> decltype(inherited)
 	{
 		using ParseNodeType = decltype(parse_ptr)::element_type;

@@ -34,13 +34,15 @@ int main(int argc, char** argv)
         arr.push_back(std::move(ast.value()));
     }
 
-    auto res = SymbolTable::init_table(std::move(arr));
-
+    auto res = SymbolTable::init_table(std::move(arr)).and_then([](auto &&table)
+	{
+        return table->generate_vm_code();
+	});
+   
     if (!res.has_value())
         std::cerr << res.error() << std::endl;
     else
-        for (auto &[class_name, class_entry]: res.value()->classes)
-            std::cout << *class_entry << std::endl;
-
+        std::cout << res.value() << std::endl;
+    
     return 0;
 }
