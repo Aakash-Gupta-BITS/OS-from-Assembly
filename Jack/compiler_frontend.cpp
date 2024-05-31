@@ -441,8 +441,7 @@ namespace
 		{
 			// do_statement => TK_DO subroutine_call TK_SEMICOLON
 			auto ast = std::make_unique<ASTType>(descendant_token(0));
-			auto call = compile_ast(descendant_nt(1), {});
-			ast->descendants = std::move(call->descendants);
+			ast->descendants.push_back(compile_ast(descendant_nt(1), {}));
 			return ast;
 		}
 		else if (node_type == NonTerminal::subroutine_call)

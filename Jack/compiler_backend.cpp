@@ -6,21 +6,305 @@ using namespace jack::compiler;
 
 namespace 
 {
+	struct ExpressionType
+	{
+		const FunctionEntry* enclosing_function{};
+		ExpressionType(const FunctionEntry* fn) : enclosing_function{ fn } {}
+		virtual ~ExpressionType() {}
+
+		template <typename T>
+		friend constexpr T& operator<<(T& out, const ExpressionType& tk)
+		{
+			return out << tk.get_out_str();
+		}
+
+	protected:
+		virtual std::string get_out_str() const = 0;
+	};
+
+	std::unique_ptr<ExpressionType> get_expression_from_ast(ASTType, const FunctionEntry*);
+
+	struct UnaryOp : ExpressionType
+	{
+		enum class OP { MINUS, NOT };
+
+		const LexerToken token{};
+		OP value{};
+
+		UnaryOp(const FunctionEntry* fn, const LexerToken lt) :
+			ExpressionType{ fn }, token{ lt }
+		{
+			if (lt.type == Terminal::TK_MINUS)
+				value = OP::MINUS;
+			else if (lt.type == Terminal::TK_NOT)
+				value = OP::NOT;
+			else
+				std::unreachable();
+		}
+
+	protected:
+		virtual std::string get_out_str() const override
+		{
+			constexpr_ostream out;
+			out << token.lexeme;
+			return out.str();
+		}
+	};
+
+	struct BinaryOp : ExpressionType
+	{
+		enum class OP { PLUS, MINUS, MULTIPLY, DIVIDE, BAND, BOR, LT, GR, EQ };
+
+		const LexerToken token{};
+		OP value{};
+
+		BinaryOp(const FunctionEntry* fn, const LexerToken lt) :
+			ExpressionType{ fn }, token{ lt }
+		{
+			if (lt.type == Terminal::TK_PLUS)
+				value = OP::PLUS;
+			else if (lt.type == Terminal::TK_MINUS)
+				value = OP::MINUS;
+			else if (lt.type == Terminal::TK_MULT)
+				value = OP::MULTIPLY;
+			else if (lt.type == Terminal::TK_DIV)
+				value = OP::DIVIDE;
+			else if (lt.type == Terminal::TK_AND)
+				value = OP::BAND;
+			else if (lt.type == Terminal::TK_OR)
+				value = OP::BOR;
+			else if (lt.type == Terminal::TK_LE)
+				value = OP::LT;
+			else if (lt.type == Terminal::TK_GE)
+				value = OP::GR;
+			else if (lt.type == Terminal::TK_EQ)
+				value = OP::EQ;
+			else
+				std::unreachable();
+		}
+
+	protected:
+		virtual std::string get_out_str() const override
+		{
+			constexpr_ostream out;
+			out << token.lexeme;
+			return out.str();
+		}
+	};
+
+	struct Expression;
+	struct Term;
+
+	struct SubroutineCall : ExpressionType
+	{
+		LexerToken prefix{};
+		LexerToken method_name{};
+		std::vector<std::unique_ptr<ExpressionType>> arguments{};
+
+		SubroutineCall(const FunctionEntry* fn, ASTType ast) : ExpressionType{ fn }
+		{
+			const auto& identifier1 = ast->descendants[0];
+			if (identifier1->descendants[0] == nullptr)
+			{
+				this->prefix = LexerToken(Terminal::eps, "");
+				this->method_name = *identifier1->lexer_token.get();
+			}
+			else
+			{
+				this->prefix = *identifier1->lexer_token.get();
+				this->method_name = *identifier1->descendants[0]->lexer_token.get();
+			}
+
+			for (auto it = ast->descendants.begin() + 1; it != ast->descendants.end(); ++it)
+				this->arguments.emplace_back(get_expression_from_ast(std::move(*it), fn));
+		}
+
+		SubroutineCall(LexerToken prefix, LexerToken methodName, std::vector<std::unique_ptr<ExpressionType>> args, const FunctionEntry* fn) :
+			ExpressionType{ fn }, prefix{ prefix }, method_name{ methodName }, arguments{ std::move(args) } { }
+
+		protected:
+			virtual std::string get_out_str() const override
+			{
+				constexpr_ostream out;
+				if (prefix.type != Terminal::eps)
+					out << prefix.lexeme << ".";
+				out << method_name.lexeme << "(";
+				for (const auto& arg : arguments)
+					out << *arg << ", ";
+				out << ")";
+				return out.str();
+			}
+	};
+
+	struct VarWithIndex : ExpressionType {
+		LexerToken var_name;
+		std::unique_ptr<ExpressionType> index_expression;
+
+		VarWithIndex(const FunctionEntry* fn, ASTType ast) : ExpressionType{ fn }
+		{
+			var_name = *ast->lexer_token;
+			index_expression = get_expression_from_ast(std::move(ast->descendants[0]->descendants[0]), fn);
+		}
+
+	protected:
+		virtual std::string get_out_str() const override
+		{
+			constexpr_ostream out;
+			out << var_name.lexeme;
+			if (index_expression != nullptr)
+				out << "[" << *index_expression << "]";
+			return out.str();
+		}
+	};
+
+	struct UnaryOpWithTerm : ExpressionType {
+		std::unique_ptr<UnaryOp> unary_op;
+		std::unique_ptr<Term> term;
+
+		UnaryOpWithTerm(const FunctionEntry* fn, ASTType ast) : ExpressionType{ fn }
+		{
+			this->unary_op = std::make_unique<UnaryOp>(fn, *ast->lexer_token.get());
+			this->term = std::make_unique<Term>(fn, std::move(ast->descendants[0]));
+		}
+
+	protected:
+		virtual std::string get_out_str() const override
+		{
+			constexpr_ostream out;
+
+			return out.str();
+		}
+	};
+
+	struct Term : ExpressionType
+	{
+		std::variant<std::unique_ptr<VarWithIndex>, std::unique_ptr<SubroutineCall>, std::unique_ptr<UnaryOpWithTerm>, std::unique_ptr<LexerToken>> term{};
+	
+		Term(const FunctionEntry* fn, ASTType ast) : ExpressionType{ fn }
+		{
+			if (ast->descendants.size() == 0 || ast->descendants[0] == nullptr)
+			{
+				switch (std::get<Terminal>(ast->lexer_token->type))
+				{
+					case Terminal::TK_IDENTIFIER:
+					case Terminal::TK_NUM:
+					case Terminal::TK_STR:
+					case Terminal::TK_THIS:
+					case Terminal::TK_NULL:
+					case Terminal::TK_TRUE:
+					case Terminal::TK_FALSE:
+						term = std::make_unique<LexerToken>(*ast->lexer_token);
+						return;
+				}
+				std::unreachable();
+			}
+
+			if (ast->lexer_token->type == Terminal::TK_MINUS ||
+				ast->lexer_token->type == Terminal::TK_NOT)
+			{
+				this->term = std::make_unique<UnaryOpWithTerm>(fn, std::move(ast));
+				return;
+			}
+
+			if (ast->descendants[0]->lexer_token->type == Terminal::TK_BRACKC)
+			{
+				this->term = std::make_unique<VarWithIndex>(fn, std::move(ast));
+				return;
+			}
+
+			if (ast->descendants[0]->lexer_token->type == Terminal::TK_DOT)
+			{
+				const LexerToken prefix = *ast->lexer_token;
+				const LexerToken method_name = *ast->descendants[0]->descendants[0]->lexer_token;
+				std::vector<std::unique_ptr<ExpressionType>> arguments;
+				for (auto it = ast->descendants.begin() + 1; it != ast->descendants.end(); ++it)
+					arguments.emplace_back(get_expression_from_ast(std::move(*it), fn));
+				this->term = std::make_unique<SubroutineCall>(prefix, method_name, std::move(arguments), fn);
+				return;
+			}
+
+			const LexerToken prefix = LexerToken(Terminal::eps, "");
+			const LexerToken method_name = *ast->lexer_token;
+			std::vector<std::unique_ptr<ExpressionType>> arguments;
+			for (auto it = ast->descendants.begin(); it != ast->descendants.end(); ++it)
+				arguments.emplace_back(get_expression_from_ast(std::move(*it), fn));
+			this->term = std::make_unique<SubroutineCall>(prefix, method_name, std::move(arguments), fn);
+		}
+
+	protected:
+		virtual std::string get_out_str() const override
+		{
+			constexpr_ostream out;
+			std::visit([&out](const auto& arg) { 
+				if constexpr (std::is_same_v<std::unique_ptr<LexerToken>, std::decay_t<decltype(arg)>>)
+					out << ((LexerToken)*arg).lexeme;
+				else
+					out << *arg;
+			}, term);
+			return out.str();
+		}
+	};
+
+	struct Expression : ExpressionType
+	{
+		struct OpEntry
+		{
+			std::unique_ptr<BinaryOp> op;
+			std::unique_ptr<Expression> lterm;
+			std::unique_ptr<Expression> rterm;
+		};
+
+		std::variant<OpEntry, std::unique_ptr<Term>> node;
+
+		Expression(const FunctionEntry* fn, ASTType ast) : ExpressionType{ fn }
+		{
+			const std::array ops = { Terminal::TK_PLUS, Terminal::TK_MINUS, Terminal::TK_MULT, Terminal::TK_DIV, Terminal::TK_AND, Terminal::TK_OR, Terminal::TK_LE, Terminal::TK_GE, Terminal::TK_EQ };
+			if (std::find(ops.begin(), ops.end(), ast->lexer_token->type) == ops.end())
+				node = std::make_unique<Term>(fn, std::move(ast));
+			else
+				node = OpEntry {
+					std::make_unique<BinaryOp>(fn, *ast->lexer_token), 
+					std::make_unique<Expression>(fn, std::move(ast->descendants[0])),
+					std::make_unique<Expression>(fn, std::move(ast->descendants[1]))
+				};
+		}
+	protected:
+		virtual std::string get_out_str() const override
+		{
+			constexpr_ostream out;
+			std::visit([&out](const auto& arg) {
+				if constexpr (std::is_same_v<std::unique_ptr<Term>, std::decay_t<decltype(arg)>>)
+					out << *arg;
+				else
+					out << "(" << * arg.lterm << " " << *arg.op << " " << *arg.rterm << ")";
+			}, node);
+			return out.str();
+		}
+	};
+
+	std::unique_ptr<ExpressionType> get_expression_from_ast(ASTType ast, const FunctionEntry* fn)
+	{
+		return std::make_unique<Expression>(fn, std::move(ast));
+	}
+}
+
+namespace 
+{
 	std::unique_ptr<Statement> get_statement_from_ast(ASTType, const FunctionEntry*);
 
 	struct LetStatement : Statement
 	{
-		std::string_view variable_name{};
 		const LexerToken let;
-		ASTType index_expression{};			// in case of array type
-		ASTType expression{};
+		std::string_view variable_name{};
+		std::unique_ptr<ExpressionType> index_expression{};			// in case of array type
+		std::unique_ptr<ExpressionType> expression{};
 
 		LetStatement(ASTType ast, const FunctionEntry* fn) : Statement{ fn }, let{ *ast->lexer_token }
 		{
 			this->variable_name = ast->descendants[0]->lexer_token->lexeme;
 			if (ast->descendants[0]->descendants[0] != nullptr)
-				this->index_expression = std::move(ast->descendants[0]->descendants[0]);
-			this->expression = std::move(ast->descendants[1]);
+				this->index_expression = get_expression_from_ast(std::move(ast->descendants[0]->descendants[0]), fn);
+			this->expression = get_expression_from_ast(std::move(ast->descendants[1]), fn);
 		}
 
 		virtual ~LetStatement() {};
@@ -41,11 +325,12 @@ namespace
 	struct ReturnStatement : Statement
 	{
 		const LexerToken ret;
-		ASTType expression{};
+		std::unique_ptr<ExpressionType> expression{};
 
 		ReturnStatement(ASTType ast, const FunctionEntry* fn) : Statement{ fn }, ret{ *ast->lexer_token }
 		{
-			this->expression = std::move(ast->descendants[0]);
+			if (ast->descendants[0] != nullptr)
+				this->expression = get_expression_from_ast(std::move(ast->descendants[0]), fn);
 		}
 		virtual ~ReturnStatement() {};
 
@@ -65,26 +350,11 @@ namespace
 	{
 		// either method_name() or prefix_name.method_name()
 		const LexerToken do_token;
-		std::string_view prefix_name;
-		std::string_view method_name;
-		std::vector<ASTType> arguments{};
+		std::unique_ptr<SubroutineCall> call;
 
 		DoStatement(ASTType ast, const FunctionEntry* fn) : Statement{ fn }, do_token{ *ast->lexer_token }
 		{
-			const auto& identifier1 = ast->descendants[0];
-			if (identifier1->descendants[0] == nullptr)
-			{
-				this->prefix_name = "";
-				this->method_name = identifier1->lexer_token->lexeme;
-			}
-			else
-			{
-				this->prefix_name = identifier1->lexer_token->lexeme;
-				this->method_name = identifier1->descendants[0]->lexer_token->lexeme;
-			}
-
-			for (auto it = ast->descendants.begin() + 1; it != ast->descendants.end(); ++it)
-				this->arguments.push_back(std::move(*it));
+			call = std::make_unique<SubroutineCall>(fn, std::move(ast->descendants[0]));
 		}
 
 		virtual ~DoStatement() {};
@@ -93,17 +363,7 @@ namespace
 		virtual std::string get_out_str() const override
 		{
 			constexpr_ostream out;
-			out << "do ";
-			if (!prefix_name.empty())
-				out << prefix_name << ".";
-			out << method_name << "(";
-			for (auto it = arguments.begin(); it != arguments.end(); ++it)
-			{
-				out << **it;
-				if (it != arguments.end() - 1)
-					out << ", ";
-			}
-			out << ");";
+			out << "\tdo " << *call << ";";
 			return out.str();
 		}
 	};
@@ -111,13 +371,13 @@ namespace
 	struct IfStatement : Statement
 	{
 		const LexerToken if_token;
-		ASTType condition{};
+		std::unique_ptr<ExpressionType> condition{};
 		std::vector<std::unique_ptr<Statement>> if_body;
 		std::vector<std::unique_ptr<Statement>> else_body;
 
 		IfStatement(ASTType ast, const FunctionEntry* fn) : Statement{ fn }, if_token{ *ast->lexer_token }
 		{
-			this->condition = std::move(ast->descendants[0]);
+			this->condition = get_expression_from_ast(std::move(ast->descendants[0]), fn);
 			if (ast->descendants[1] != nullptr)
 				for (auto it = ast->descendants[1]->descendants.begin(); it != ast->descendants[1]->descendants.end(); ++it)
 					this->if_body.push_back(get_statement_from_ast(std::move(*it), fn));
@@ -151,12 +411,12 @@ namespace
 	struct WhileStatement : Statement
 	{
 		const LexerToken while_token;
-		ASTType condition{};
+		std::unique_ptr<ExpressionType> condition{};
 		std::vector<std::unique_ptr<Statement>> body;
 
 		WhileStatement(ASTType ast, const FunctionEntry* fn) : Statement{ fn }, while_token{ *ast->lexer_token }
 		{
-			this->condition = std::move(ast->descendants[0]);
+			this->condition = get_expression_from_ast(std::move(ast->descendants[0]), fn);
 			for (auto it = ast->descendants[1]->descendants.begin(); it != ast->descendants[1]->descendants.end(); ++it)
 				this->body.push_back(get_statement_from_ast(std::move(*it), fn));
 		}
@@ -201,13 +461,18 @@ struct AssemblyGenerator
 	constexpr_ostream errors;
 	constexpr_ostream output;
 	
-	std::tuple<const Type*, std::string_view, int> get_variable_loc(const FunctionEntry* fn, std::string_view var_name, const ASTType& array_index)
+	const Type* generate_function_code(const FunctionEntry* enclosing_fn, const LexerToken& fn_name, std::vector<ASTType> arguments)
+	{
+		return nullptr;
+	}
+
+	std::tuple<const Type*, std::string_view, int> get_variable_loc(const FunctionEntry* fn, std::string_view var_name, const ExpressionType* array_index)
 	{
 		return { nullptr, "", 0 };
 	}
 
 	// Process expression and return its type
-	const Type* process(const FunctionEntry* fn, const ASTType& ast)
+	const Type* process(const FunctionEntry* fn, const ExpressionType* ast)
 	{
 		constexpr std::array segments = { "local", "argument", "this", "static" };
 		return nullptr;
@@ -215,8 +480,8 @@ struct AssemblyGenerator
 
 	void process(const LetStatement* let)
 	{
-		const auto expression_type = process(let->enclosing_function, let->expression);
-		const auto [variable_type, segment, index] = get_variable_loc(let->enclosing_function, let->variable_name, let->index_expression);
+		const auto expression_type = process(let->enclosing_function, let->expression.get());
+		const auto [variable_type, segment, index] = get_variable_loc(let->enclosing_function, let->variable_name, let->index_expression.get());
 
 		if (expression_type != variable_type || expression_type == nullptr)
 			errors << let->enclosing_function->enclosing_class_type->name << "." << let->enclosing_function->name << ": Type mismatch in let statement: " << let->let << "\n";
@@ -239,7 +504,7 @@ struct AssemblyGenerator
 		}
 
 		const auto* fn_ret_type = ret->enclosing_function->return_type.value_or(nullptr);
-		const auto* expression_type = ret->expression != nullptr ? process(ret->enclosing_function, ret->expression) : nullptr;
+		const auto* expression_type = ret->expression != nullptr ? process(ret->enclosing_function, ret->expression.get()) : nullptr;
 
 		if (fn_ret_type != expression_type)
 			errors << ret->enclosing_function->enclosing_class_type->name << "." << ret->enclosing_function->name << ": Type mismatch in return statement: " << ret->ret << "\n";
@@ -258,7 +523,7 @@ struct AssemblyGenerator
 	void process(const IfStatement* if_stmt)
 	{
 		static int if_counter = 0;
-		const auto* if_condition_res = process(if_stmt->enclosing_function, if_stmt->condition);
+		const auto* if_condition_res = process(if_stmt->enclosing_function, if_stmt->condition.get());
 		if (if_condition_res != symbol_table->classes.find("boolean")->second.get())
 			errors << if_stmt->enclosing_function->enclosing_class_type->name << "." << if_stmt->enclosing_function->name << ": If condition should be of type boolean: " << if_stmt->if_token << "\n";
 
@@ -277,7 +542,7 @@ struct AssemblyGenerator
 	{
 		static int while_counter = 0;
 		output << "label WHILE_LABEL" << while_counter << "\n";
-		const auto* while_condition_res = process(while_stmt->enclosing_function, while_stmt->condition);
+		const auto* while_condition_res = process(while_stmt->enclosing_function, while_stmt->condition.get());
 		if (while_condition_res != symbol_table->classes.find("boolean")->second.get())
 			errors << while_stmt->enclosing_function->enclosing_class_type->name << "." << while_stmt->enclosing_function->name << ": While condition should be of type boolean: " << while_stmt->while_token << "\n";
 
@@ -581,6 +846,10 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 
 std::expected<std::string, std::string> SymbolTable::generate_vm_code() const
 {
+	constexpr_ostream out;
+	for (auto &[x, y]: this->classes)
+		out << *y << "\n";
+	return out.str();
 	AssemblyGenerator generator(this);
 	generator.process(this);
 	if (generator.errors.has_data())
