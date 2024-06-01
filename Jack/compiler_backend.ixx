@@ -28,7 +28,7 @@ struct Type
 	const std::string_view name{};
 	std::map<std::string_view, std::variant<std::any, EFunctionType, EVariableType>> member_types{};
 	std::map<std::string_view, std::unique_ptr<VariableEntry>> field_variables{};
-	std::map<std::string_view, std::unique_ptr<VariableEntry>> static_variable{};
+	std::map<std::string_view, std::unique_ptr<VariableEntry>> static_variables{};
 	std::map<std::string_view, std::unique_ptr<FunctionEntry>> constructors{};
 	std::map<std::string_view, std::unique_ptr<FunctionEntry>> functions{};
 	std::map<std::string_view, std::unique_ptr<FunctionEntry>> methods{};
@@ -40,7 +40,7 @@ struct Type
 		for (const auto& [name, member] : tk.field_variables)
 			out << "\tfield " << *member << "\n";
 
-		for (const auto& [name, member] : tk.static_variable)
+		for (const auto& [name, member] : tk.static_variables)
 			out << "\tstatic " << *member << "\n";
 
 		out << "\n";

@@ -482,14 +482,32 @@ struct AssemblyGenerator
 		if (lhs == rhs)
 			return true;
 
-		if ((lhs->name == "int" || lhs->name == "char" || lhs->name == "boolean") && rhs->name == "null")
-			return true;
-
-		return false;
+		return !(lhs->name == "int" || lhs->name == "char" || lhs->name == "boolean") && rhs->name == "null";
 	}
 
 	auto get_variable_loc(const FunctionEntry* fn, std::string_view var_name, const ExpressionType* array_index) -> std::tuple<const Type*, std::string_view, int>
 	{
+		const auto* enclosing_class = fn->enclosing_class_type;;
+		const auto& class_static_vars = enclosing_class->static_variables;
+		const auto& class_field_vars = enclosing_class->field_variables;
+		const auto& params = fn->parameters;
+		const auto& locals = fn->locals;
+		const bool static_scope = fn->member_type == EFunctionType::FUNCTION;
+
+		if (class_static_vars.find(var_name) != class_static_vars.end())
+			return { class_static_vars.find(var_name)->second->type, "static", class_static_vars.find(var_name)->second->index };
+			
+		if (!static_scope && class_field_vars.find(var_name) != class_field_vars.end())
+			return { class_field_vars.find(var_name)->second->type, "this", class_field_vars.find(var_name)->second->index };
+
+		for (const auto& param : params)
+			if (param->name == var_name)
+				return { param->type, "argument", param->index };
+
+		for (const auto& local : locals)
+			if (local->name == var_name)
+				return { local->type, "local", local->index };
+
 		return { nullptr, "", 0 };
 	}
 
@@ -504,6 +522,17 @@ struct AssemblyGenerator
 		// Y() -> can resolve to either this.Y() or static function Y()
 		// X.Y() -> can resolve to (X is variable name, Y is method name) or (X is class name, Y is function name)
 
+		const auto* enclosing_class = call->enclosing_function->enclosing_class_type;
+		const auto* enclosing_function = call->enclosing_function;
+		const auto& class_static_vars = enclosing_class->static_variables;
+		const auto& class_field_vars = enclosing_class->field_variables;
+		const auto& params = enclosing_function->parameters;
+		const auto& locals = enclosing_function->locals;
+
+		const auto& class_methods = enclosing_class->methods;
+		const auto& class_constructors = enclosing_class->constructors;
+		const auto& class_functions = enclosing_class->functions;
+		
 		if (call->prefix.lexeme == "")
 		{
 
@@ -540,7 +569,7 @@ struct AssemblyGenerator
 		else
 			output << "\tnot\n";
 
-		return nullptr;
+		return term_type;
 	}
 
 	const Type* process(const Term* term)
@@ -724,7 +753,7 @@ struct AssemblyGenerator
 		const auto expression_type = process(let->expression.get());
 		const auto [variable_type, segment, index] = get_variable_loc(let->enclosing_function, let->variable_name, let->index_expression.get());
 
-		if (!valid_assignment_type(expression_type, variable_type))
+		if (!valid_assignment_type(variable_type, expression_type))
 			errors << let->enclosing_function->enclosing_class_type->name << "." << let->enclosing_function->name << ": Type mismatch in let statement: " << let->let << "\n";
 
 		output << "\tpop " << segment << " " << index << "\n";
@@ -767,7 +796,7 @@ struct AssemblyGenerator
 	{
 		output << "// Do " << do_stmt->call.get()->method_name << "\n";
 		process(do_stmt->call.get());
-		output << "\tpop temp 0";
+		output << "\tpop temp 0\n";
 	}
 
 	void process(const IfStatement* if_stmt)
@@ -825,6 +854,23 @@ struct AssemblyGenerator
 
 	void process(const FunctionEntry* fn)
 	{
+		if (fn->member_type == EFunctionType::METHOD)
+			output << "\t// Method " << fn->enclosing_class_type->name << "." << fn->name << "\n";
+		else if (fn->member_type == EFunctionType::CONSTRUCTOR)
+			output << "\t// Constructor " << fn->enclosing_class_type->name << "." << fn->name << "\n";
+		else
+			output << "\t// Function " << fn->enclosing_class_type->name << "." << fn->name << "\n";
+
+		if (fn->return_type != std::nullopt)
+			output << "\t// Return type: " << fn->return_type.value()->name << "\n";
+		else 
+			output << "\t// Return type: void\n";
+
+		for (const auto& param : fn->parameters)
+			output << "\t// Param " << param->index << " " << param->type->name << " " << param->name << "\n";
+		for (const auto& local : fn->locals)
+			output << "\t// Local " << local->index << " " << local->type->name << " " << local->name << "\n";
+
 		output << "function " << fn->enclosing_class_type->name << "." << fn->name << " " << fn->locals.size() << "\n";
 		if (fn->member_type == EFunctionType::METHOD)
 		{
@@ -856,8 +902,14 @@ struct AssemblyGenerator
 	{
 		for (const auto& [class_name, class_type] : symbol_table->classes)
 		{
-			if (class_name == "int" || class_name == "char" || class_name == "boolean")
-				continue;
+			const auto& class_static_vars = class_type->static_variables;
+			const auto& class_field_vars = class_type->field_variables;
+
+			output << "// class " << class_name << "\n";
+			for (const auto& [_, var] : class_static_vars)
+				output << "\t// static " << var->index << " " << var->type->name << " " << class_name << "." << var->name << "\n";
+			for (const auto& [_, var] : class_field_vars)
+				output << "\t// field " << var->index << " " << var->type->name << " " << class_name << "." << var->name << "\n";
 
 			for (const auto& [_, con] : class_type->constructors)
 				process(con.get());
@@ -938,7 +990,7 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 					if (prefix_type == Terminal::TK_FIELD)
 						term->field_variables[var_name] = std::make_unique<VariableEntry>(EVariableType::FIELD, var_name, table->classes[var_type_name].get(), field_var_index++);
 					else
-						term->static_variable[var_name] = std::make_unique<VariableEntry>(EVariableType::STATIC, var_name, table->classes[var_type_name].get(), static_var_index++);
+						term->static_variables[var_name] = std::make_unique<VariableEntry>(EVariableType::STATIC, var_name, table->classes[var_type_name].get(), static_var_index++);
 				}
 			}
 		}
