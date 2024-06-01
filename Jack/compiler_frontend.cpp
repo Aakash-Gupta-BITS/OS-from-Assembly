@@ -407,9 +407,7 @@ namespace
 			if (descendant_count() == 0)
 				return inherited;
 
-			auto ast = std::make_unique<ASTType>(NonTerminal::identifier_suffix);
-			ast->descendants.push_back(compile_ast(descendant_nt(1), {}));
-			return ast;
+			return compile_ast(descendant_nt(1), {});
 		}
 		else if (node_type == NonTerminal::if_statement)
 		{

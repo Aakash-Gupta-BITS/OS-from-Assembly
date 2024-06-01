@@ -15,20 +15,21 @@ field Square Screen;
             let Screen = null;
             do draw();
             let ad = -fc;
+
         }
     }
 
 method void erase() {  }
 method void draw() {}
-method void setColor(){ }
-method void drawRectangle(){}
+method void setColor(boolean x2){ }
+method void drawRectangle(int a, int b, int x1, int y1){}
 
     // Moves the square up by 2 pixels.
     method void moveUp() {
         if (y > 1) {
             do Screen.setColor(false);
             do Screen.drawRectangle(x, (y + size) - 1, x + size, y + size);
-            let y = y - 2;
+            let y = 5;
         }
     }
 }

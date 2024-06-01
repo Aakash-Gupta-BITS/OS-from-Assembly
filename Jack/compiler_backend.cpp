@@ -272,7 +272,7 @@ namespace
 			const std::array ops = { Terminal::TK_PLUS, Terminal::TK_MINUS, Terminal::TK_MULT, Terminal::TK_DIV, Terminal::TK_AND, Terminal::TK_OR, Terminal::TK_LE, Terminal::TK_GE, Terminal::TK_EQ };
 			if (std::find(ops.begin(), ops.end(), ast->lexer_token->type) == ops.end())
 				node = std::make_unique<Term>(fn, std::move(ast));
-			else if (ast->lexer_token->type == Terminal::TK_MINUS)
+			else if (ast->lexer_token->type == Terminal::TK_MINUS && ast->descendants.size() == 1)
 				node = std::make_unique<Term>(fn, std::move(ast));
 			else {
 				auto op = std::make_unique<BinaryOp>(fn, *ast->lexer_token);
@@ -494,32 +494,59 @@ struct AssemblyGenerator
 		const auto& locals = fn->locals;
 		const bool static_scope = fn->member_type == EFunctionType::FUNCTION;
 
+		const Type* var_type{};
+		std::string segment{};
+		int index{};
+
 		if (class_static_vars.find(var_name) != class_static_vars.end())
-			return { class_static_vars.find(var_name)->second->type, "static", class_static_vars.find(var_name)->second->index };
-			
-		if (!static_scope && class_field_vars.find(var_name) != class_field_vars.end())
-			return { class_field_vars.find(var_name)->second->type, "this", class_field_vars.find(var_name)->second->index };
+		{
+			var_type = class_static_vars.find(var_name)->second->type;
+			segment = "static";
+			index = class_static_vars.find(var_name)->second->index;
+		}
+		else if (!static_scope && class_field_vars.find(var_name) != class_field_vars.end())
+		{
+			var_type = class_field_vars.find(var_name)->second->type;
+			segment = "this";
+			index = class_field_vars.find(var_name)->second->index;
+		}
+		else
+		{
+			bool found = false;
 
-		for (const auto& param : params)
-			if (param->name == var_name)
-				return { param->type, "argument", param->index };
+			for (const auto& param : params)
+				if (!found && param->name == var_name)
+				{
+					found = true;
+					var_type = param->type;
+					segment = "argument";
+					index = param->index;
+				}
 
-		for (const auto& local : locals)
-			if (local->name == var_name)
-				return { local->type, "local", local->index };
+			for (const auto& local : locals)
+				if (!found && local->name == var_name)
+				{
+					found = true;
+					var_type = local->type;
+					segment = "local";
+					index = local->index;
+				}
+		}
 
+		if (var_type == nullptr)
+			return { nullptr, "", 0 };
+
+		if (array_index == nullptr)
+			return { var_type, segment, index };
+
+		// Variable type must be array
+		errors << "ARRAYS ARE NOT SUPPORTED YET!!" << "\n";
 		return { nullptr, "", 0 };
 	}
 
 	const Type* process(const SubroutineCall* call)
 	{
-		/*
-		LexerToken prefix{};
-		LexerToken method_name{};
-		std::vector<std::unique_ptr<ExpressionType>> arguments{};
-		*/
-
-		// Y() -> can resolve to either this.Y() or static function Y()
+		// Y() -> can resolve to either this.Y() method or static function Y()
 		// X.Y() -> can resolve to (X is variable name, Y is method name) or (X is class name, Y is function name)
 
 		const auto* enclosing_class = call->enclosing_function->enclosing_class_type;
@@ -533,12 +560,83 @@ struct AssemblyGenerator
 		const auto& class_constructors = enclosing_class->constructors;
 		const auto& class_functions = enclosing_class->functions;
 		
+		FunctionEntry* target = nullptr;
+		std::string first_argument;
+
 		if (call->prefix.lexeme == "")
 		{
+			if (class_methods.find(call->method_name.lexeme) != class_methods.end())
+			{
+				target = class_methods.find(call->method_name.lexeme)->second.get();
+				first_argument = "this";
+			}
+			else if (class_functions.find(call->method_name.lexeme) != class_functions.end())
+			{
+				target = class_functions.find(call->method_name.lexeme)->second.get();
+				first_argument = "";
+			}
+			else
+				errors << enclosing_class->name << "." << enclosing_function->name << ": Method not found: " << call->method_name << "\n";
+		}
+		else
+		{
+			const auto [variable_type, segment, index] = get_variable_loc(enclosing_function, call->prefix.lexeme, nullptr);
 
+			if (symbol_table->classes.find(call->prefix.lexeme) != symbol_table->classes.end())
+			{
+				const auto* class_type = symbol_table->classes.find(call->prefix.lexeme)->second.get();
+				if (class_type->functions.find(call->method_name.lexeme) != class_type->functions.end())
+				{
+					target = class_type->functions.find(call->method_name.lexeme)->second.get();
+					first_argument = "";
+				}
+				else
+					errors << enclosing_class->name << "." << enclosing_function->name << ": Function not found: " << call->method_name << "\n";
+			}
+			else if (variable_type != nullptr)
+			{
+				const auto& var_method_list = variable_type->methods;
+				if (var_method_list.find(call->method_name.lexeme) != var_method_list.end())
+				{
+					target = var_method_list.find(call->method_name.lexeme)->second.get();
+					first_argument = call->prefix.lexeme;
+				}
+				else
+					errors << enclosing_class->name << "." << enclosing_function->name << ": Method not found: " << call->method_name << "\n";
+			}
+			else
+				errors << enclosing_class->name << "." << enclosing_function->name << ": Class not found: " << call->prefix << "\n";
 		}
 
-		return nullptr;
+		if (target == nullptr)
+			return nullptr;
+
+		if (target->parameters.size() != (call->arguments.size() + (first_argument == "" ? 0 : 1)))
+		{
+			errors << enclosing_class->name << "." << enclosing_function->name << ": Argument count mismatch in method call: " << call->method_name << "\n";
+			return target->return_type.value_or(nullptr);
+		}
+
+		if (first_argument != "") {
+			const auto [variable_type, segment, index] = get_variable_loc(enclosing_function, first_argument, nullptr);
+
+			if (!valid_assignment_type(target->parameters[0].get()->type, variable_type))
+				errors << enclosing_class->name << "." << enclosing_function->name << ": Type mismatch in method call: " << call->method_name << "\n";
+
+			output << "\tpush " << segment << " " << index << "\n";
+		}
+		
+		for (int i = 0; i < call->arguments.size(); ++i)
+		{
+			const auto* arg_type = process(call->arguments[i].get());
+			if (!valid_assignment_type(target->parameters[i + (first_argument == "" ? 0 : 1)].get()->type, arg_type))
+				errors << enclosing_class->name << "." << enclosing_function->name << ": Type mismatch in method call: " << call->method_name << " at arg index " << i << "\n";
+		}
+
+		// call the method now
+		output << "\tcall " << target->enclosing_class_type->name << "." << target->name << " " << target->parameters.size() << "\n";
+
+		return target->return_type.value_or(nullptr);
 	}
 
 	const Type* process(const VarWithIndex* vwi)
@@ -597,8 +695,16 @@ struct AssemblyGenerator
 				{
 					output << "\tpush constant " << (int)ch << "\n";
 					output << "\tcall String.appendChar 2\n";
+
 				}
-				return symbol_table->classes.find("String")->second.get();
+
+				if (symbol_table->classes.contains("String"))
+					return symbol_table->classes.find("String")->second.get();
+				else
+				{
+					errors << term->enclosing_function->enclosing_class_type->name << "." << term->enclosing_function->name << ": String class not found\n";
+					return nullptr;
+				}
 			}
 			else if (token->type == Terminal::TK_TRUE)
 			{
@@ -1162,6 +1268,10 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 
 std::expected<std::string, std::string> SymbolTable::generate_vm_code() const
 {
+	constexpr_ostream out;
+	for (const auto& [_, type] : this->classes)
+		out << *type;
+
 	AssemblyGenerator generator(this);
 	generator.process(this);
 	if (generator.errors.has_data())
