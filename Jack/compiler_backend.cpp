@@ -24,33 +24,6 @@ namespace
 
 	std::unique_ptr<ExpressionType> get_expression_from_ast(ASTType, const FunctionEntry*);
 
-	struct UnaryOp : ExpressionType
-	{
-		enum class OP { MINUS, NOT };
-
-		const LexerToken token{};
-		OP value{};
-
-		UnaryOp(const FunctionEntry* fn, const LexerToken lt) :
-			ExpressionType{ fn }, token{ lt }
-		{
-			if (lt.type == Terminal::TK_MINUS)
-				value = OP::MINUS;
-			else if (lt.type == Terminal::TK_NOT)
-				value = OP::NOT;
-			else
-				std::unreachable();
-		}
-
-	protected:
-		virtual std::string get_out_str() const override
-		{
-			constexpr_ostream out;
-			out << token.lexeme;
-			return out.str();
-		}
-	};
-
 	struct BinaryOp : ExpressionType
 	{
 		enum class OP { PLUS, MINUS, MULTIPLY, DIVIDE, BAND, BOR, LT, GR, EQ };
@@ -157,7 +130,35 @@ namespace
 		}
 	};
 
-	struct UnaryOpWithTerm : ExpressionType {
+	struct UnaryOpWithTerm : ExpressionType
+	{
+		struct UnaryOp : ExpressionType
+		{
+			enum class OP { MINUS, NOT };
+
+			const LexerToken token{};
+			OP value{};
+
+			UnaryOp(const FunctionEntry* fn, const LexerToken lt) :
+				ExpressionType{ fn }, token{ lt }
+			{
+				if (lt.type == Terminal::TK_MINUS)
+					value = OP::MINUS;
+				else if (lt.type == Terminal::TK_NOT)
+					value = OP::NOT;
+				else
+					std::unreachable();
+			}
+
+		protected:
+			virtual std::string get_out_str() const override
+			{
+				constexpr_ostream out;
+				out << token.lexeme;
+				return out.str();
+			}
+		};
+
 		std::unique_ptr<UnaryOp> unary_op;
 		std::unique_ptr<Term> term;
 
@@ -252,21 +253,33 @@ namespace
 			std::unique_ptr<BinaryOp> op;
 			std::unique_ptr<Expression> lterm;
 			std::unique_ptr<Expression> rterm;
+
+			OpEntry(auto&& op, auto&& lterm, auto&& rterm)
+			{
+				this->op = std::move(op);
+				this->lterm = std::move(lterm);
+				this->rterm = std::move(rterm);
+			}
+
+			OpEntry(OpEntry&& other) noexcept :
+				op{ std::move(other.op) }, lterm{ std::move(other.lterm) }, rterm{ std::move(other.rterm) } { }
 		};
 
-		std::variant<OpEntry, std::unique_ptr<Term>> node;
+		std::variant<std::unique_ptr<Term>, std::unique_ptr<OpEntry>> node;
 
 		Expression(const FunctionEntry* fn, ASTType ast) : ExpressionType{ fn }
 		{
 			const std::array ops = { Terminal::TK_PLUS, Terminal::TK_MINUS, Terminal::TK_MULT, Terminal::TK_DIV, Terminal::TK_AND, Terminal::TK_OR, Terminal::TK_LE, Terminal::TK_GE, Terminal::TK_EQ };
 			if (std::find(ops.begin(), ops.end(), ast->lexer_token->type) == ops.end())
 				node = std::make_unique<Term>(fn, std::move(ast));
-			else
-				node = OpEntry {
-					std::make_unique<BinaryOp>(fn, *ast->lexer_token), 
-					std::make_unique<Expression>(fn, std::move(ast->descendants[0])),
-					std::make_unique<Expression>(fn, std::move(ast->descendants[1]))
-				};
+			else if (ast->lexer_token->type == Terminal::TK_MINUS)
+				node = std::make_unique<Term>(fn, std::move(ast));
+			else {
+				auto op = std::make_unique<BinaryOp>(fn, *ast->lexer_token);
+				auto lterm = std::make_unique<Expression>(fn, std::move(ast->descendants[0]));
+				auto rterm = std::make_unique<Expression>(fn, std::move(ast->descendants[1]));
+				node = std::make_unique<OpEntry>(std::move(op), std::move(lterm), std::move(rterm));
+			}
 		}
 	protected:
 		virtual std::string get_out_str() const override
@@ -276,7 +289,7 @@ namespace
 				if constexpr (std::is_same_v<std::unique_ptr<Term>, std::decay_t<decltype(arg)>>)
 					out << *arg;
 				else
-					out << "(" << * arg.lterm << " " << *arg.op << " " << *arg.rterm << ")";
+					out << "(" << * arg->lterm << " " << *arg->op << " " << *arg->rterm << ")";
 			}, node);
 			return out.str();
 		}
@@ -461,26 +474,159 @@ struct AssemblyGenerator
 	constexpr_ostream errors;
 	constexpr_ostream output;
 	
-	const Type* generate_function_code(const FunctionEntry* enclosing_fn, const LexerToken& fn_name, std::vector<ASTType> arguments)
-	{
-		return nullptr;
-	}
-
-	std::tuple<const Type*, std::string_view, int> get_variable_loc(const FunctionEntry* fn, std::string_view var_name, const ExpressionType* array_index)
+	auto get_variable_loc(const FunctionEntry* fn, std::string_view var_name, const ExpressionType* array_index) -> std::tuple<const Type*, std::string_view, int>
 	{
 		return { nullptr, "", 0 };
 	}
 
-	// Process expression and return its type
-	const Type* process(const FunctionEntry* fn, const ExpressionType* ast)
+	const Type* process(const SubroutineCall* call)
 	{
-		constexpr std::array segments = { "local", "argument", "this", "static" };
 		return nullptr;
+	}
+
+	const Type* process(const VarWithIndex* vwi)
+	{
+		return nullptr;
+	}
+
+	const Type* process(const UnaryOpWithTerm* op_with_term)
+	{
+		const auto* term_type = process(op_with_term->term.get());
+
+		if (term_type == nullptr)
+			errors << op_with_term->enclosing_function->enclosing_class_type->name << "." << op_with_term->enclosing_function->name << ": Type mismatch in unary operation: " << op_with_term->unary_op->token << "\n";
+
+		if (op_with_term->unary_op->value == UnaryOpWithTerm::UnaryOp::OP::MINUS)
+			output << "\tneg\n";
+		else
+			output << "\tnot\n";
+
+		return nullptr;
+	}
+
+	const Type* process(const Term* type)
+	{
+		return nullptr;
+	}
+
+	const Type* process(const Expression* exp)
+	{
+		if (std::holds_alternative<std::unique_ptr<Term>>(exp->node))
+			return process(std::get<std::unique_ptr<Term>>(exp->node).get());
+
+		// binary operation
+		const auto op_entry = std::get<std::unique_ptr<Expression::OpEntry>>(exp->node).get();
+		const Type* lterm_type = process(op_entry->lterm.get());
+		const Type* rterm_type = process(op_entry->rterm.get());
+
+		if (lterm_type != rterm_type || lterm_type == nullptr)
+		{
+			errors << exp->enclosing_function->enclosing_class_type->name << "." << exp->enclosing_function->name << ": Type mismatch in binary operation: " << op_entry->op->token << "\n";
+			return nullptr;
+		}
+
+		// LHS TYPE = RHS TYPE
+		switch (op_entry->op->value)
+		{
+		case BinaryOp::OP::PLUS:
+		case BinaryOp::OP::MINUS:
+		case BinaryOp::OP::MULTIPLY:
+		case BinaryOp::OP::DIVIDE:
+		case BinaryOp::OP::LT:
+		case BinaryOp::OP::GR:
+			if (lterm_type != symbol_table->classes.find("int")->second.get())
+			{
+				errors << exp->enclosing_function->enclosing_class_type->name << "." << exp->enclosing_function->name << ": Type should be of type 'int' on both sides of binary operation: " << op_entry->op->token << "\n";
+				return nullptr;
+			}
+			break;
+		case BinaryOp::OP::BAND:
+		case BinaryOp::OP::BOR:
+			if (lterm_type != symbol_table->classes.find("boolean")->second.get())
+			{
+				errors << exp->enclosing_function->enclosing_class_type->name << "." << exp->enclosing_function->name << ": Type should be of type 'bool' on both sides of binary operation: " << op_entry->op->token << "\n";
+				return nullptr;
+			}
+			break;
+		case BinaryOp::OP::EQ:
+			// Types are already same
+			break;
+		default:
+			std::unreachable();
+		}
+
+		switch (op_entry->op->value)
+		{
+		case BinaryOp::OP::PLUS:
+			output << "\tadd\n";
+			break;
+		case BinaryOp::OP::MINUS:
+			output << "\tsub\n";
+			break;
+		case BinaryOp::OP::MULTIPLY:
+			output << "\tcall Math.multiply 2\n";
+			break;
+		case BinaryOp::OP::DIVIDE:
+			output << "\tcall Math.divide 2\n";
+			break;
+		case BinaryOp::OP::LT:
+			output << "\tlt\n";
+			break;
+		case BinaryOp::OP::GR:
+			output << "\tgt\n";
+			break;
+		case BinaryOp::OP::BAND:
+			output << "\tand\n";
+			break;
+		case BinaryOp::OP::BOR:
+			output << "\tor\n";
+			break;
+		case BinaryOp::OP::EQ:
+			output << "\teq\n";
+			break;
+		default:
+			std::unreachable();
+		}
+		
+		switch (op_entry->op->value)
+		{
+		case BinaryOp::OP::PLUS:
+		case BinaryOp::OP::MINUS:
+		case BinaryOp::OP::MULTIPLY:
+		case BinaryOp::OP::DIVIDE:
+			return symbol_table->classes.find("int")->second.get();
+		case BinaryOp::OP::LT:
+		case BinaryOp::OP::GR:
+		case BinaryOp::OP::EQ:
+		case BinaryOp::OP::BAND:
+		case BinaryOp::OP::BOR:
+			return symbol_table->classes.find("boolean")->second.get();
+		default:
+			std::unreachable();
+		}
+
+		return nullptr;
+	}
+
+	const Type* process(const ExpressionType* expression)
+	{
+		if (auto ptr = dynamic_cast<const SubroutineCall*>(expression))
+			return process(ptr);
+		else if (auto ptr = dynamic_cast<const VarWithIndex*>(expression))
+			return process(ptr);
+		else if (auto ptr = dynamic_cast<const UnaryOpWithTerm*>(expression))
+			return process(ptr);
+		else if (auto ptr = dynamic_cast<const Term*>(expression))
+			return process(ptr);
+		else if (auto ptr = dynamic_cast<const Expression*>(expression))
+			return process(ptr);
+		else
+			std::unreachable();
 	}
 
 	void process(const LetStatement* let)
 	{
-		const auto expression_type = process(let->enclosing_function, let->expression.get());
+		const auto expression_type = process(let->expression.get());
 		const auto [variable_type, segment, index] = get_variable_loc(let->enclosing_function, let->variable_name, let->index_expression.get());
 
 		if (expression_type != variable_type || expression_type == nullptr)
@@ -491,9 +637,16 @@ struct AssemblyGenerator
 
 	void process(const ReturnStatement* ret)
 	{
-		if (ret->enclosing_function->member_type == EFunctionType::CONSTRUCTOR && (ret->expression != nullptr)) 
+		output << "// return statement\n";
+		if (ret->enclosing_function->member_type == EFunctionType::CONSTRUCTOR && (ret->expression != nullptr))
 		{
 			errors << ret->enclosing_function->enclosing_class_type->name << "." << ret->enclosing_function->name << ": Constructor should not return a value\n";
+			return;
+		}
+
+		if (ret->enclosing_function->return_type == std::nullopt && (ret->expression != nullptr))
+		{
+			errors << ret->enclosing_function->enclosing_class_type->name << "." << ret->enclosing_function->name << ": void method should not return a value\n";
 			return;
 		}
 
@@ -504,7 +657,7 @@ struct AssemblyGenerator
 		}
 
 		const auto* fn_ret_type = ret->enclosing_function->return_type.value_or(nullptr);
-		const auto* expression_type = ret->expression != nullptr ? process(ret->enclosing_function, ret->expression.get()) : nullptr;
+		const auto* expression_type = ret->expression != nullptr ? process(ret->expression.get()) : nullptr;
 
 		if (fn_ret_type != expression_type)
 			errors << ret->enclosing_function->enclosing_class_type->name << "." << ret->enclosing_function->name << ": Type mismatch in return statement: " << ret->ret << "\n";
@@ -517,13 +670,17 @@ struct AssemblyGenerator
 
 	void process(const DoStatement* do_stmt)
 	{
-
+		output << "// Do " << do_stmt->call.get()->method_name << "\n";
+		process(do_stmt->call.get());
+		output << "\tpop temp 0";
 	}
 
 	void process(const IfStatement* if_stmt)
 	{
+
+		output << "// If statement\n";
 		static int if_counter = 0;
-		const auto* if_condition_res = process(if_stmt->enclosing_function, if_stmt->condition.get());
+		const auto* if_condition_res = process(if_stmt->condition.get());
 		if (if_condition_res != symbol_table->classes.find("boolean")->second.get())
 			errors << if_stmt->enclosing_function->enclosing_class_type->name << "." << if_stmt->enclosing_function->name << ": If condition should be of type boolean: " << if_stmt->if_token << "\n";
 
@@ -540,9 +697,10 @@ struct AssemblyGenerator
 
 	void process(const WhileStatement* while_stmt)
 	{
+		output << "// While statement\n";
 		static int while_counter = 0;
 		output << "label WHILE_LABEL" << while_counter << "\n";
-		const auto* while_condition_res = process(while_stmt->enclosing_function, while_stmt->condition.get());
+		const auto* while_condition_res = process(while_stmt->condition.get());
 		if (while_condition_res != symbol_table->classes.find("boolean")->second.get())
 			errors << while_stmt->enclosing_function->enclosing_class_type->name << "." << while_stmt->enclosing_function->name << ": While condition should be of type boolean: " << while_stmt->while_token << "\n";
 
@@ -587,6 +745,16 @@ struct AssemblyGenerator
 
 		for (const auto& stmt : fn->statements)
 			process(stmt.get());
+
+		// If no constructor or void return type, return should be present
+		if (fn->member_type != EFunctionType::CONSTRUCTOR && fn->return_type != std::nullopt)
+		if (fn->statements.empty() || !dynamic_cast<const ReturnStatement*>(fn->statements.back().get()))
+			errors << fn->enclosing_class_type->name << "." << fn->name << ": Missing return statement in the end\n";
+
+		if (fn->return_type == std::nullopt)
+			output << "\tpush constant 0\n\treturn\n";
+		else if (fn->member_type == EFunctionType::CONSTRUCTOR)
+			output << "\tpush pointer 0\n\treturn\n";
 	}
 
 	void process(const SymbolTable* symbol_table)
@@ -846,10 +1014,6 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 
 std::expected<std::string, std::string> SymbolTable::generate_vm_code() const
 {
-	constexpr_ostream out;
-	for (auto &[x, y]: this->classes)
-		out << *y << "\n";
-	return out.str();
 	AssemblyGenerator generator(this);
 	generator.process(this);
 	if (generator.errors.has_data())

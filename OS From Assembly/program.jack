@@ -14,13 +14,13 @@ field Square Screen;
             do erase();
             let size = size + 2;
             do draw();
+            let ad = -fc;
         }
-        return;
     }
 
-method void erase() {}
+method void erase() {  }
 method void draw() {}
-method void setColor(){}
+method void setColor(){ }
 method void drawRectangle(){}
 
     // Moves the square up by 2 pixels.
