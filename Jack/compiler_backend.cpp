@@ -474,6 +474,20 @@ struct AssemblyGenerator
 	constexpr_ostream errors;
 	constexpr_ostream output;
 	
+	bool valid_assignment_type(const Type* lhs, const Type* rhs)
+	{
+		if (lhs == nullptr || rhs == nullptr)
+			return false;
+
+		if (lhs == rhs)
+			return true;
+
+		if ((lhs->name == "int" || lhs->name == "char" || lhs->name == "boolean") && rhs->name == "null")
+			return true;
+
+		return false;
+	}
+
 	auto get_variable_loc(const FunctionEntry* fn, std::string_view var_name, const ExpressionType* array_index) -> std::tuple<const Type*, std::string_view, int>
 	{
 		return { nullptr, "", 0 };
@@ -481,12 +495,37 @@ struct AssemblyGenerator
 
 	const Type* process(const SubroutineCall* call)
 	{
+		/*
+		LexerToken prefix{};
+		LexerToken method_name{};
+		std::vector<std::unique_ptr<ExpressionType>> arguments{};
+		*/
+
+		// Y() -> can resolve to either this.Y() or static function Y()
+		// X.Y() -> can resolve to (X is variable name, Y is method name) or (X is class name, Y is function name)
+
+		if (call->prefix.lexeme == "")
+		{
+
+		}
+
 		return nullptr;
 	}
 
 	const Type* process(const VarWithIndex* vwi)
 	{
-		return nullptr;
+		const auto* index_type = process(vwi->index_expression.get());
+
+		if (index_type->name != "int")
+		{
+			errors << vwi->enclosing_function->enclosing_class_type->name << "." << vwi->enclosing_function->name << ": Array index should be of type 'int'\n";
+			return nullptr;
+		}
+
+		const auto [variable_type, segment, index] = get_variable_loc(vwi->enclosing_function, vwi->var_name.lexeme, vwi->index_expression.get());
+
+		output << "\tpush " << segment << " " << index << "\n";
+		return variable_type;
 	}
 
 	const Type* process(const UnaryOpWithTerm* op_with_term)
@@ -504,9 +543,65 @@ struct AssemblyGenerator
 		return nullptr;
 	}
 
-	const Type* process(const Term* type)
+	const Type* process(const Term* term)
 	{
-		return nullptr;
+		if (std::holds_alternative<std::unique_ptr<VarWithIndex>>(term->term))
+			return process(std::get<std::unique_ptr<VarWithIndex>>(term->term).get());
+		else if (std::holds_alternative<std::unique_ptr<SubroutineCall>>(term->term))
+			return process(std::get<std::unique_ptr<SubroutineCall>>(term->term).get());
+		else if (std::holds_alternative<std::unique_ptr<UnaryOpWithTerm>>(term->term))
+			return process(std::get<std::unique_ptr<UnaryOpWithTerm>>(term->term).get());
+		else if (std::holds_alternative<std::unique_ptr<LexerToken>>(term->term))
+		{
+			const auto& token = std::get<std::unique_ptr<LexerToken>>(term->term).get();
+
+			if (token->type == Terminal::TK_NUM)
+			{
+				output << "\tpush constant " << token->lexeme << "\n";
+				return symbol_table->classes.find("int")->second.get();
+			}
+			else if (token->type == Terminal::TK_STR)
+			{
+				output << "\tpush constant " << token->lexeme.size() << "\n";
+				output << "\tcall String.new 1\n";
+				for (const auto& ch : token->lexeme)
+				{
+					output << "\tpush constant " << (int)ch << "\n";
+					output << "\tcall String.appendChar 2\n";
+				}
+				return symbol_table->classes.find("String")->second.get();
+			}
+			else if (token->type == Terminal::TK_TRUE)
+			{
+				output << "\tpush constant 1\n";
+				return symbol_table->classes.find("boolean")->second.get();
+			}
+			else if (token->type == Terminal::TK_FALSE)
+			{
+				output << "\tpush constant 0\n";
+				return symbol_table->classes.find("boolean")->second.get();
+			}
+			else if (token->type == Terminal::TK_NULL)
+			{
+				output << "\tpush constant 0\n";
+				return symbol_table->classes.find("null")->second.get();
+			}
+			else if (token->type == Terminal::TK_THIS)
+			{
+				output << "\tpush pointer 0\n";
+				return term->enclosing_function->enclosing_class_type;
+			}
+			else if (token->type == Terminal::TK_IDENTIFIER)
+			{
+				const auto [variable_type, segment, index] = get_variable_loc(term->enclosing_function, token->lexeme, nullptr);
+				output << "\tpush " << segment << " " << index << "\n";
+				return variable_type;
+			}
+			else
+				std::unreachable();
+		}
+		else
+			std::unreachable();
 	}
 
 	const Type* process(const Expression* exp)
@@ -629,7 +724,7 @@ struct AssemblyGenerator
 		const auto expression_type = process(let->expression.get());
 		const auto [variable_type, segment, index] = get_variable_loc(let->enclosing_function, let->variable_name, let->index_expression.get());
 
-		if (expression_type != variable_type || expression_type == nullptr)
+		if (!valid_assignment_type(expression_type, variable_type))
 			errors << let->enclosing_function->enclosing_class_type->name << "." << let->enclosing_function->name << ": Type mismatch in let statement: " << let->let << "\n";
 
 		output << "\tpop " << segment << " " << index << "\n";
@@ -785,6 +880,7 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 	table->classes["int"] = std::make_unique<Type>("int");
 	table->classes["char"] = std::make_unique<Type>("char");
 	table->classes["boolean"] = std::make_unique<Type>("boolean");
+	table->classes["null"] = std::make_unique<Type>("null");
 
 	// Init type map
 	for (auto& class_ast : class_asts) 
@@ -803,7 +899,7 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 	for (auto& class_ast : class_asts)
 	{
 		const auto class_name = class_ast->lexer_token->lexeme;
-		auto& type = table->classes[class_name];
+		auto& term = table->classes[class_name];
 		const auto& class_vars = class_ast->descendants[0];
 		const auto& subroutineDecs = class_ast->descendants[1];
 
@@ -826,7 +922,7 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 				for (auto identifier = var->descendants.begin() + 2; identifier != var->descendants.end(); ++identifier)
 				{
 					const auto var_name = (*identifier)->lexer_token->lexeme;
-					if (type->member_types.contains(var_name))
+					if (term->member_types.contains(var_name))
 					{
 						error_logs << class_name << ": Member " << *(*identifier)->lexer_token << " already exists\n";
 						continue;
@@ -838,11 +934,11 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 						continue;
 					}
 
-					type->member_types[var_name] = prefix_type == Terminal::TK_FIELD ? EVariableType::FIELD : EVariableType::STATIC;
+					term->member_types[var_name] = prefix_type == Terminal::TK_FIELD ? EVariableType::FIELD : EVariableType::STATIC;
 					if (prefix_type == Terminal::TK_FIELD)
-						type->field_variables[var_name] = std::make_unique<VariableEntry>(EVariableType::FIELD, var_name, table->classes[var_type_name].get(), field_var_index++);
+						term->field_variables[var_name] = std::make_unique<VariableEntry>(EVariableType::FIELD, var_name, table->classes[var_type_name].get(), field_var_index++);
 					else
-						type->static_variable[var_name] = std::make_unique<VariableEntry>(EVariableType::STATIC, var_name, table->classes[var_type_name].get(), static_var_index++);
+						term->static_variable[var_name] = std::make_unique<VariableEntry>(EVariableType::STATIC, var_name, table->classes[var_type_name].get(), static_var_index++);
 				}
 			}
 		}
@@ -858,12 +954,12 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 				auto& body_ast = subroutineDec->descendants[2]->descendants[1];
 				const EFunctionType efntype = subroutine_type == Terminal::TK_CONSTRUCTOR ? EFunctionType::CONSTRUCTOR :
 					subroutine_type == Terminal::TK_METHOD ? EFunctionType::METHOD : EFunctionType::FUNCTION;
-				auto func_entry = std::make_unique<FunctionEntry>(efntype, subroutineDec->lexer_token->lexeme, type.get());
+				auto func_entry = std::make_unique<FunctionEntry>(efntype, subroutineDec->lexer_token->lexeme, term.get());
 
 				int param_index = 0;
 				int local_index = 0;
 
-				if (type->member_types.contains(func_entry->name))
+				if (term->member_types.contains(func_entry->name))
 				{
 					error_logs << class_name << ": Member " << *subroutineDec->lexer_token << " already exists\n";
 					continue;
@@ -885,7 +981,7 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 
 				if (subroutine_type == Terminal::TK_METHOD)
 				{
-					func_entry->parameters.push_back(std::make_unique<VariableEntry>(EVariableType::PARAMETER, "this", type.get(), param_index++));
+					func_entry->parameters.push_back(std::make_unique<VariableEntry>(EVariableType::PARAMETER, "this", term.get(), param_index++));
 					func_entry->fn_member_types["this"] = EVariableType::PARAMETER;
 				}
 
@@ -908,7 +1004,7 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 							continue;
 						}
 
-						if (type->member_types.contains(param_name))
+						if (term->member_types.contains(param_name))
 						{
 							error_logs << class_name << ": " << func_entry->name << ": Member " << *param->descendants[0]->lexer_token << " already exists in enclosing class\n";
 							continue;
@@ -946,7 +1042,7 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 								continue;
 							}
 
-							if (type->member_types.contains(local_name))
+							if (term->member_types.contains(local_name))
 							{
 								error_logs << class_name << ": " << func_entry->name << ": Member " << *(*local_name_ptr)->lexer_token << " already exists in enclosing class\n";
 								continue;
@@ -971,21 +1067,21 @@ std::expected<std::unique_ptr<SymbolTable>, std::string> SymbolTable::init_table
 
 				if (subroutine_type == Terminal::TK_CONSTRUCTOR)
 				{
-					type->member_types[func_entry->name] = EFunctionType::CONSTRUCTOR;
-					type->constructors[func_entry->name] = std::move(func_entry);
+					term->member_types[func_entry->name] = EFunctionType::CONSTRUCTOR;
+					term->constructors[func_entry->name] = std::move(func_entry);
 
-					if (func_entry->return_type != type.get())
+					if (func_entry->return_type != term.get())
 						error_logs << class_name << ": " << func_entry->name << ": Constructor's return type should match the class it is part of.\n";
 				}
 				else if (subroutine_type == Terminal::TK_METHOD)
 				{
-					type->member_types[func_entry->name] = EFunctionType::METHOD;
-					type->methods[func_entry->name] = std::move(func_entry);
+					term->member_types[func_entry->name] = EFunctionType::METHOD;
+					term->methods[func_entry->name] = std::move(func_entry);
 				}
 				else if (subroutine_type == Terminal::TK_FUNCTION)
 				{
-					type->member_types[func_entry->name] = EFunctionType::FUNCTION;
-					type->functions[func_entry->name] = std::move(func_entry);
+					term->member_types[func_entry->name] = EFunctionType::FUNCTION;
+					term->functions[func_entry->name] = std::move(func_entry);
 				}
 			}
 		}

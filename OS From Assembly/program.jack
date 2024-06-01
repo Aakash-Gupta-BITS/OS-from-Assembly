@@ -12,7 +12,7 @@ field Square Screen;
             */
         if (((y + size) < 254) & ((x + size) < 510)) {
             do erase();
-            let size = size + 2;
+            let size = null;
             do draw();
             let ad = -fc;
         }
